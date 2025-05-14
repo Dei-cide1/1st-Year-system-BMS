@@ -2,8 +2,12 @@
 #include <fstream>
 #include <string>
 #include <cctype>
+#include <random>
 
 using namespace std;
+
+random_device rd;
+mt19937 gen(rd());
 
 void getUser(string &user)
 {
@@ -21,10 +25,12 @@ void displaySign()
          << endl;
 }
 
+
+
 struct Signup
 {
     ofstream accounts;
-    string username, password, number;
+    string accNumber, number, username, password, pin;
     bool checker = false;
 
     void userSignup()
@@ -39,11 +45,13 @@ struct Signup
                 cout << "Invalid phone number please try again" << endl;
             }
 
-            cout << " Enter your 11 digit phone number starting at 09 " << endl;
+            cout << " Only digits " << endl;
+            cout << " Ph number only (09) " << endl;
+            cout << "No spaces, hyphens, or letters" << endl;
             cout << "Number :" << endl;
             cin >> number;
             checker = isValidN(number);
-        } while (checker);
+        } while (!checker);
 
         cin.ignore();
         checker = false;
@@ -52,25 +60,64 @@ struct Signup
         {
             if (checker)
             {
-                cout << "Invalid phone number please try again" << endl;
+                cout << "Invalid username please try again" << endl;
             }
-            cout << "Username may only contain alphanumeric characters or single hyphens, and cannot begin or end with a hyphen." << endl;
+            cout << "Must contain: " << endl;
+            cout << "At least one lowercase letter (a-z)" << endl;
+            cout << "At least one uppercase letter (A-Z)" << endl;
+            cout << "At least one digit (0-9)" << endl;
+            cout << "Must not contain hyphens (-)" << endl;
+            cout << "Minimum length: typically 6–12 characters" << endl;
+
             getUser(username);
             checker = isValidU(username);
-        } while (checker);
+        } while (!checker);
         checker = false;
         do
         {
             if (checker)
             {
-                cout << "Invalid phone number please try again" << endl;
+                cout << "Invalid password please try again" << endl;
             }
-            cout << "Password should be at least 15 characters OR at least 8 characters including a number and a lowercase letter." << endl;
+            cout << "Must contain: " << endl;
+            cout << "At least one lowercase letter (a-z)" << endl;
+            cout << "At least one uppercase letter (A-Z)" << endl;
+            cout << "At least one digit (0-9)" << endl;
+            cout << "Minimum length: 8 characters" << endl;
             getPass(password);
             checker = isValidP(password);
+        } while (!checker);
+        checker = false;
+        do
+        {
+            string secondTry;
+            if (checker)
+            {
+                cout << "Invalid pin please try again" << endl;
+            }
+            cout << "Must contain a 6 combination number" << endl;
+            cout << "Enter your 6 digit PIN" << endl;
+            cin >> pin;
+            if (!isValidPin(pin))
+            {
+                checker = !isValidPin(pin);
+            }else{
+            cout << "Re-enter your 6 digit PIN" << endl;
+            cin >> secondTry;
+            if (pin == secondTry)
+            {
+                checker = !isValidPin(pin);
+            }
+            else
+            {
+                checker = true;
+            }
+        }
         } while (checker);
 
-        accounts << number << "," << username << "," << password << endl;
+        accNumber = accountNum();
+
+        accounts << accNumber << "," << number << "," << username << "," << password << "," << pin << endl;
 
         accounts.open(username);
 
@@ -81,61 +128,117 @@ struct Signup
     {
         if (number.length() != 11)
         {
-            return true;
+            return false;
         }
 
         for (int i = 0; i < number.length(); i++)
         {
             if (!isdigit(number[i]))
             {
-                return true;
+                return false;
             }
         }
 
         if (number[0] != '0' || number[1] != '9')
         {
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 
     bool isValidU(string name)
     {
-        if (name.length() < 4 || name.length() > 24)
+        bool haslower = false, hasdigit = false, hasupper = false;
+        if (name.length() < 6 || name.length() > 24)
         {
-            return true;
-        }
-        if (name[0] == '-' || name.back() == '-')
-        {
-            return true;
+            return false;
         }
         for (int i = 0; i < name.length(); i++)
         {
             if (!isalnum(name[i]) || name[i] == '-')
             {
-                return true;
+                return false;
+            }
+            if (islower(name[i]))
+            {
+                haslower = true;
+            }
+
+            if (isupper(name[i]))
+            {
+                hasupper = true;
+            }
+            if (isdigit(name[i]))
+            {
+                hasdigit = true;
             }
         }
-        return false;
+        return (haslower && hasdigit && hasupper);
     }
 
     bool isValidP(string pass)
     {
-        if (password.length() < 8)
-            return true;
-        bool hasLower = true, hasNumber = true;
+        bool haslower = false, hasdigit = false, hasupper = false;
+        if (pass.length() < 6)
+        {
+            return false;
+        }
         for (int i = 0; i < pass.length(); i++)
         {
+            if (!isalnum(pass[i]))
+            {
+                return false;
+            }
             if (islower(pass[i]))
             {
-                hasLower = false;
+                haslower = true;
+            }
+
+            if (isupper(pass[i]))
+            {
+                hasupper = true;
             }
             if (isdigit(pass[i]))
             {
-                hasNumber = false;
+                hasdigit = true;
             }
         }
-        return (hasLower || hasNumber);
+        return (haslower && hasdigit && hasupper);
+    }
+    bool isValidPin(string pin)
+    {
+        if (pin.length() != 6)
+        {
+            return false;
+        }
+        for (int i = 0; i < pin.length(); i++)
+        {
+            if (!isdigit(pin[i]))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+
+    string accountNum()
+    {
+        string accNum = {""};
+        for (int i = 0; i < 12; i++)
+        {
+            uniform_int_distribution<> distrib(0, 9);
+            int randomNum = distrib(gen);
+            char digit = '0' + randomNum;
+            accNum += digit;
+
+            if (i == 3 || i == 7)
+            {
+                accNum += "-";
+            }
+        }
+        return accNum;
     }
 };
 
@@ -200,9 +303,9 @@ int main()
     int n;
 
     displaySign();
-    cout << "1. Sign in " << endl;
-    cout << "2. Sign up " << endl;
-    cout << "3. Sign in as admin " << endl;
+    cout << "1. Create account " << endl;
+    cout << "2. Check account " << endl;
+    cout << "3. Login as Admin " << endl;
     cout << "4. exit " << endl;
     cout << "Enter choice : ";
     cin >> n;
@@ -210,6 +313,14 @@ int main()
     switch (n)
     {
     case 1:
+    {
+
+        signup.userSignup();
+        cout << "Successfully created account!" << endl;
+
+        break;
+    }
+    case 2:
     {
         Signin signin;
         bool checker = false;
@@ -237,11 +348,8 @@ int main()
             checker = signin.authPass(pass);
         } while (checker);
 
-        break;
-    }
-    case 2:
-    {
-        signup.userSignup();
+        
+
         break;
     }
     case 3:
