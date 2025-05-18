@@ -3,6 +3,8 @@
 #include <string>
 #include <cctype>
 #include <random>
+#include <vector>
+#include <iomanip>
 
 using namespace std;
 
@@ -25,106 +27,117 @@ void displaySign()
          << endl;
 }
 
-
-
-struct Signup
+string getFromFile(string accNumber, int n)
 {
-    ofstream accounts;
-    string accNumber, number, username, password, pin;
-    bool checker = false;
+    ifstream file("userAccounts.csv");
+    ostringstream toString;
+    string line, accNum = {""}, num, name, pass, pin;
+    double balance;
+    int location;
 
-    void userSignup()
+    while (getline(file, line))
     {
+        location = line.find(",");
+        accNum = line.substr(0, location);
+        line = line.substr(location + 1, line.length());
 
-        accounts.open("userAccounts.csv", ios::app);
+        location = line.find(",");
+        num = line.substr(0, location);
+        line = line.substr(location + 1, line.length());
 
-        do
+        location = line.find(",");
+        name = line.substr(0, location);
+        line = line.substr(location + 1, line.length());
+
+        location = line.find(",");
+        pass = line.substr(0, location);
+        line = line.substr(location + 1, line.length());
+
+        location = line.find(",");
+        pin = line.substr(0, location);
+        line = line.substr(location + 1, line.length());
+
+        balance = stod(line);
+
+        if (accNumber == accNum)
         {
-            if (checker)
+            switch (n)
             {
-                cout << "Invalid phone number please try again" << endl;
-            }
-
-            cout << " Only digits " << endl;
-            cout << " Ph number only (09) " << endl;
-            cout << "No spaces, hyphens, or letters" << endl;
-            cout << "Number :" << endl;
-            cin >> number;
-            checker = isValidN(number);
-        } while (!checker);
-
-        cin.ignore();
-        checker = false;
-
-        do
-        {
-            if (checker)
-            {
-                cout << "Invalid username please try again" << endl;
-            }
-            cout << "Must contain: " << endl;
-            cout << "At least one lowercase letter (a-z)" << endl;
-            cout << "At least one uppercase letter (A-Z)" << endl;
-            cout << "At least one digit (0-9)" << endl;
-            cout << "Must not contain hyphens (-)" << endl;
-            cout << "Minimum length: typically 6–12 characters" << endl;
-
-            getUser(username);
-            checker = isValidU(username);
-        } while (!checker);
-        checker = false;
-        do
-        {
-            if (checker)
-            {
-                cout << "Invalid password please try again" << endl;
-            }
-            cout << "Must contain: " << endl;
-            cout << "At least one lowercase letter (a-z)" << endl;
-            cout << "At least one uppercase letter (A-Z)" << endl;
-            cout << "At least one digit (0-9)" << endl;
-            cout << "Minimum length: 8 characters" << endl;
-            getPass(password);
-            checker = isValidP(password);
-        } while (!checker);
-        checker = false;
-        do
-        {
-            string secondTry;
-            if (checker)
-            {
-                cout << "Invalid pin please try again" << endl;
-            }
-            cout << "Must contain a 6 combination number" << endl;
-            cout << "Enter your 6 digit PIN" << endl;
-            cin >> pin;
-            if (!isValidPin(pin))
-            {
-                checker = !isValidPin(pin);
-            }else{
-            cout << "Re-enter your 6 digit PIN" << endl;
-            cin >> secondTry;
-            if (pin == secondTry)
-            {
-                checker = !isValidPin(pin);
-            }
-            else
-            {
-                checker = true;
+            case 1:
+                return accNum;
+                break;
+            case 2:
+                return num;
+                break;
+            case 3:
+                return name;
+                break;
+            case 4:
+                return pass;
+                break;
+            case 5:
+                return pin;
+                break;
+            case 6:
+                return to_string(balance);
+                break;
+            default:
+                break;
             }
         }
-        } while (checker);
+    }
+    return accNum;
+}
+void editBalance(string &filename, string accNumber)
+{
+    ifstream file(filename);
+    ofstream temp("temp.csv");
+    ostringstream toString;
+    vector<string> fLine;
+    string line, accNum, num, name, pass, pin;
+    int balance;
+    int location;
 
-        accNumber = accountNum();
+    while (getline(file, line))
+    {
+        location = line.find(",");
+        accNum = line.substr(0, location);
+        line = line.substr(location + 1, line.length());
 
-        accounts << accNumber << "," << number << "," << username << "," << password << "," << pin << endl;
+        location = line.find(",");
+        num = line.substr(0, location);
+        line = line.substr(location + 1, line.length());
 
-        accounts.open(username);
+        location = line.find(",");
+        name = line.substr(0, location);
+        line = line.substr(location + 1, line.length());
 
-        accounts.close();
+        location = line.find(",");
+        pass = line.substr(0, location);
+        line = line.substr(location + 1, line.length());
+
+        location = line.find(",");
+        pin = line.substr(0, location);
+        line = line.substr(location + 1, line.length());
+
+        toString << fixed << setprecision(2);
+        toString << line;
+        balance = stod(line);
+
+        if (accNumber == accNum)
+        {
+            toString << fixed << setprecision(2);
+            toString << accNum << "," << num << "," << name << "," << pass << "," << pin << "," << balance << endl;
+            temp << toString.str();
+        }
     }
 
-    bool isValidN(string number)
+    file.close();
+}
+
+struct Isvalid
+{
+    bool number(string number)
     {
         if (number.length() != 11)
         {
@@ -146,7 +159,7 @@ struct Signup
         return true;
     }
 
-    bool isValidU(string name)
+    bool username(string name)
     {
         bool haslower = false, hasdigit = false, hasupper = false;
         if (name.length() < 6 || name.length() > 24)
@@ -176,7 +189,7 @@ struct Signup
         return (haslower && hasdigit && hasupper);
     }
 
-    bool isValidP(string pass)
+    bool password(string pass)
     {
         bool haslower = false, hasdigit = false, hasupper = false;
         if (pass.length() < 6)
@@ -205,7 +218,7 @@ struct Signup
         }
         return (haslower && hasdigit && hasupper);
     }
-    bool isValidPin(string pin)
+    bool pin(string pin)
     {
         if (pin.length() != 6)
         {
@@ -220,10 +233,157 @@ struct Signup
         }
         return true;
     }
+};
 
+struct Authenticate
+{
+    int location;
 
+    string user(string user, string password)
+    {
+        ifstream file("userAccounts.csv");
+        ostringstream toString;
+        string line, accNum = {"0000-0000-0000"}, num, name, pass, pin;
+        double balance;
+        int location;
 
-    string accountNum()
+        while (getline(file, line))
+        {
+            location = line.find(",");
+            accNum = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
+            num = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
+            name = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
+            pass = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
+            pin = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            balance = stod(line);
+
+            if (user == name && password == pass)
+            {
+                return accNum;
+            }
+        }
+        file.close();
+        accNum = {"0000-0000-0000"};
+        return accNum;
+    }
+};
+
+struct Signup
+{
+    ofstream accounts;
+    Isvalid isValid;
+    string accNumber, number, username, password, pin;
+    double balance = 0.00;
+    bool checker = false;
+
+    void getInfo()
+    {
+
+        accounts.open("userAccounts.csv", ios::app);
+
+        do
+        {
+            if (checker)
+            {
+                cout << "Invalid phone number please try again" << endl;
+            }
+
+            cout << " Only digits " << endl;
+            cout << " Ph number only (09) " << endl;
+            cout << "No spaces, hyphens, or letters" << endl;
+            cout << "Number :" << endl;
+            cin >> number;
+            checker = isValid.number(number);
+        } while (!checker);
+
+        cin.ignore();
+        checker = false;
+
+        do
+        {
+            if (checker)
+            {
+                cout << "Invalid username please try again" << endl;
+            }
+            cout << "Must contain: " << endl;
+            cout << "At least one lowercase letter (a-z)" << endl;
+            cout << "At least one uppercase letter (A-Z)" << endl;
+            cout << "At least one digit (0-9)" << endl;
+            cout << "Must not contain hyphens (-)" << endl;
+            cout << "Minimum length: typically 6–12 characters" << endl;
+
+            getUser(username);
+            checker = isValid.username(username);
+        } while (!checker);
+        checker = false;
+        do
+        {
+            if (checker)
+            {
+                cout << "Invalid password please try again" << endl;
+            }
+            cout << "Must contain: " << endl;
+            cout << "At least one lowercase letter (a-z)" << endl;
+            cout << "At least one uppercase letter (A-Z)" << endl;
+            cout << "At least one digit (0-9)" << endl;
+            cout << "Minimum length: 8 characters" << endl;
+            getPass(password);
+            checker = isValid.password(password);
+        } while (!checker);
+        checker = false;
+        do
+        {
+            string secondTry;
+            if (checker)
+            {
+                cout << "Invalid pin please try again" << endl;
+            }
+            cout << "Must contain a 6 combination number" << endl;
+            cout << "Enter your 6 digit PIN" << endl;
+            cin >> pin;
+            if (!isValid.pin(pin))
+            {
+                checker = !isValid.pin(pin);
+            }
+            else
+            {
+                cout << "Re-enter your 6 digit PIN" << endl;
+                cin >> secondTry;
+                if (pin == secondTry)
+                {
+                    checker = !isValid.pin(pin);
+                }
+                else
+                {
+                    checker = true;
+                }
+            }
+        } while (checker);
+
+        accNumber = accountNumGenerate();
+
+        accounts << accNumber << "," << number << "," << username << "," << password << "," << pin << "," << balance << endl;
+
+        accounts.open(accNumber);
+
+        accounts.close();
+    }
+
+    string accountNumGenerate()
     {
         string accNum = {""};
         for (int i = 0; i < 12; i++)
@@ -244,62 +404,146 @@ struct Signup
 
 struct Signin
 {
-    string lineAcc, firstC = "", secC = "";
-    int location;
-    bool isFound = true;
+    Authenticate authenticate;
 
-    bool authUser(string user)
+    string accNumber, number, username, password, pin, c;
+    int balance;
+    int n;
+
+    void signin()
     {
-        ifstream iAccount("userAccounts.csv", ios ::in);
+        bool checker = true;
 
-        while (iAccount >> lineAcc)
+        string name = {""}, pass = {""};
+
+        displaySign();
+        do
         {
-
-            location = lineAcc.find(",");
-            firstC = lineAcc.substr(0, location);
-            lineAcc = lineAcc.substr(location + 1, lineAcc.length());
-
-            location = lineAcc.find(",");
-            secC = lineAcc.substr(0, location);
-
-            if (user == secC)
+            if (!checker)
             {
-                isFound = false;
+                cout << "Incorrect Username or Password" << endl;
             }
-        }
-        iAccount.close();
+            getUser(name);
+            getPass(pass);
 
-        return isFound;
+            if (authenticate.user(name, pass) == "0000-0000-0000")
+            {
+                checker = false;
+            }
+            else
+            {
+                c = authenticate.user(name, pass);
+                accNumber = getFromFile(c, 1);
+                number = getFromFile(c, 2);
+                username = getFromFile(c, 3);
+                password = getFromFile(c, 4);
+                pin = getFromFile(c, 5);
+                balance = stod(getFromFile(c, 6));
+                user();
+                checker = true;
+            }
+        } while (!checker);
     }
-    bool authPass(string user)
+
+    void user()
     {
-        ifstream iAccount("userAccounts.csv", ios ::in);
+        cout << "1. Check balance " << endl;
+        cout << "2. Withdraw Cash " << endl;
+        cout << "3. Deposit Cash " << endl;
+        cout << "4.Transaction History " << endl;
+        cout << "5. Change pin " << endl;
+        cout << "Enter choice : ";
+        cin >> n;
 
-        while (iAccount >> lineAcc)
+        switch (n)
         {
+        case 1:
+            checkBalance();
+            break;
+        case 2:
+            withdraw(accNumber);
+            break;
 
-            location = lineAcc.find(",");
-            firstC = lineAcc.substr(0, location);
-            lineAcc = lineAcc.substr(location + 1, lineAcc.length());
+        default:
+            break;
+        }
+    }
 
-            location = lineAcc.find(",");
-            secC = lineAcc.substr(0, location);
-            lineAcc = lineAcc.substr(location + 1, lineAcc.length());
+    void checkBalance()
+    {
+        double balance = stod(getFromFile(accNumber, 6));
+        cout << " CURRENT BALANCE : ₱" << fixed << setprecision(2) << balance << endl;
+    }
 
-            if (user == lineAcc)
+    void withdraw(string ID)
+    {
+        ifstream file("userAccounts.csv");
+        ofstream temp("temp.csv");
+        string line, accNum, num, name, pass, pin;
+        double balance;
+        int location;
+        double newBalance;
+        bool repeater;
+
+        do
+        {
+            repeater = false;
+            cout << "(Note that the bank only withdraw in denomination of 100, 200, 500 and 1000)" << endl;
+            cout << "Choose amount to Withdraw : ";
+            cin >> newBalance;
+            cin.ignore();
+            if (0 == (static_cast<int>(newBalance) % 100))
             {
-                isFound = false;
+                repeater = true;
+            }
+        } while (!repeater);
+
+        while (getline(file, line))
+        {
+            location = line.find(",");
+            accNum = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
+            num = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
+            name = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
+            pass = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
+            pin = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            balance = stod(line);
+
+            if (accNum == ID)
+            {
+                temp << accNumber << "," << number << "," << username << "," << password << "," << pin << "," << balance - newBalance << endl;
+            }
+            else
+            {
+                temp << accNumber << "," << number << "," << username << "," << password << "," << pin << "," << balance << endl;
             }
         }
-        iAccount.close();
 
-        return isFound;
+        temp.close();
+        file.close();
+
+        remove("userAccounts.csv");
+        rename("temp.csv", "userAccounts.csv");
     }
 };
 
 int main()
 {
     Signup signup;
+    Signin signin;
     int n;
 
     displaySign();
@@ -309,76 +553,24 @@ int main()
     cout << "4. exit " << endl;
     cout << "Enter choice : ";
     cin >> n;
-
+    cin.ignore();
     switch (n)
     {
     case 1:
     {
 
-        signup.userSignup();
+        signup.getInfo();
         cout << "Successfully created account!" << endl;
 
         break;
     }
     case 2:
     {
-        Signin signin;
-        bool checker = false;
-        string user = {""}, pass = {""};
-
-        displaySign();
-        do
-        {
-            cout << checker;
-            if (checker)
-            {
-                cout << "Incorrect Username please try again" << endl;
-            }
-            getUser(user);
-            checker = signin.authUser(user);
-        } while (checker);
-        checker = false;
-        do
-        {
-            if (checker)
-            {
-                cout << "Incorrect Password please try again" << endl;
-            }
-            getPass(pass);
-            checker = signin.authPass(pass);
-        } while (checker);
-
-        
-
+        signin.signin();
         break;
     }
     case 3:
     {
-        Signin signin;
-        bool checker = false;
-        string user = {""}, pass = {""};
-
-        displaySign();
-        do
-        {
-            cout << checker;
-            if (checker)
-            {
-                cout << "Incorrect Username please try again" << endl;
-            }
-            getUser(user);
-            checker = signin.authUser(user);
-        } while (checker);
-        checker = false;
-        do
-        {
-            if (checker)
-            {
-                cout << "Incorrect Password please try again" << endl;
-            }
-            getPass(pass);
-            checker = signin.authPass(pass);
-        } while (checker);
 
         break;
     }
