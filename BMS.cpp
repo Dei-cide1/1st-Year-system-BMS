@@ -28,6 +28,37 @@ void displaySign()
          << endl;
 }
 
+void pinVerification(string &pin, int &n)
+{
+    string inputPin;
+    int attempts = {5};
+
+    do
+    {
+        cout << "Enter your 6-digit PIN: ";
+        getline(cin, inputPin);
+
+        if (inputPin != pin)
+        {
+            attempts--;
+            if (attempts > 0)
+            {
+                cout << "Invalid PIN. " << attempts << " attempts remaining." << endl;
+            }
+            else
+            {
+                cout << "Error: Maximum attempts reached. Please contact the administrator. " << endl;
+                cout << " Automatically Logging out..." << endl
+                     << endl;
+                n = 0; // pag naging 0 to ibigsabihin maglologout kasi 0 ung condition ng logout dun sa user panel
+            }
+        }
+        else
+        {
+            break;
+        }
+    } while (attempts > 0);
+}
 string getFromFile(string accNumber, int n)
 {
     ifstream file("userAccounts.csv");
@@ -385,6 +416,11 @@ struct Signup
         ofstream newfile(newFile);
 
         newfile.close();
+
+        cout << "Successfully created account!" << endl
+             << endl;
+        cout << "Username : " << username << endl;
+        cout << "Account Number : " << accNumber << endl;
     }
 
     string accountNumGenerate()
@@ -416,6 +452,7 @@ struct Signin
 
     void signin()
     {
+
         bool checker = true;
 
         string name = {""}, pass = {""};
@@ -451,26 +488,32 @@ struct Signin
 
     void user()
     {
-        cout << "1. Check balance " << endl;
-        cout << "2. Withdraw Cash " << endl;
-        cout << "3. Deposit Cash " << endl;
-        cout << "4.Transaction History " << endl;
-        cout << "5. Change pin " << endl;
-        cout << "Enter choice : ";
-        cin >> n;
-
-        switch (n)
+        do
         {
-        case 1:
-            checkBalance();
-            break;
-        case 2:
-            withdraw(accNumber);
-            break;
+            cout << "1. Check balance " << endl;
+            cout << "2. Withdraw Cash " << endl;
+            cout << "3. Deposit Cash " << endl;
+            cout << "4.Transaction History " << endl;
+            cout << "5. Change pin " << endl;
+            cout << "Enter choice : ";
+            cin >> n;
 
-        default:
-            break;
-        }
+            switch (n)
+            {
+            case 1:
+                checkBalance();
+                break;
+            case 2:
+                withdraw(accNumber);
+                break;
+            case 3:
+                deposit(accNumber);
+                break;
+            default:
+                break;
+            }
+
+        } while (n != 0);
     }
 
     void checkBalance()
@@ -484,28 +527,35 @@ struct Signin
         ifstream file("userAccounts.csv");
         ofstream temp("temp.csv");
         string line, accNum, num, name, pass, pin;
+        string inputPin;
+        int attempts = 5;
         double balance;
         int location;
         double newBalance;
         bool repeater;
+        bool found = false;
 
+        // dito mag rerepeat input pag mali ung ini input mo dito din nag tatake ng input
         do
         {
-            repeater = false;
+            repeater = true;
             cout << "(Note that the bank only withdraw in denomination of 100, 200, 500 and 1000)" << endl;
             cout << "Choose amount to Withdraw : ";
             cin >> newBalance;
             cin.ignore();
-            if (0 == (static_cast<int>(newBalance) % 100))
+            if (0 != (static_cast<int>(newBalance) % 100))
             {
-                repeater = true;
+                cout << "Error: Amount must be in denominations of 100, 200, 500, or 1000" << endl;
+                repeater = false;
             }
-            if (newBalance < stod(getFromFile(accNumber, 6)))
+            if (newBalance > this->balance)
             {
-                repeater = true;
+                cout << "Error: Insufficient balance. Your current balance is ₱" << fixed << setprecision(2) << this->balance << endl;
+                repeater = false;
             }
-
         } while (!repeater);
+
+        pinVerification(this->pin, n);
 
         while (getline(file, line))
         {
@@ -531,13 +581,85 @@ struct Signin
 
             balance = stod(line);
 
-            if (accNum == ID)
+            if (accNum == ID && !found)
             {
-                temp << accNumber << "," << number << "," << username << "," << password << "," << pin << "," << balance - newBalance << endl;
+                temp << accNum << "," << num << "," << name << "," << pass << "," << pin << "," << balance - newBalance << endl;
+                found = true;
             }
             else
             {
-                temp << accNumber << "," << number << "," << username << "," << password << "," << pin << "," << balance << endl;
+                temp << accNum << "," << num << "," << name << "," << pass << "," << pin << "," << balance << endl;
+            }
+        }
+
+        temp.close();
+        file.close();
+
+        remove("userAccounts.csv");
+        rename("temp.csv", "userAccounts.csv");
+    }
+
+    void deposit(string ID)
+    {
+        ifstream file("userAccounts.csv");
+        ofstream temp("temp.csv");
+        string line, accNum, num, name, pass, pin;
+        string inputPin;
+        int attempts = 5;
+        double balance;
+        int location;
+        double newBalance;
+        bool repeater;
+        bool found = false;
+
+        do
+        {
+            repeater = true;
+            cout << "(Note that the bank only Deposit in denomination of 100, 200, 500 and 1000)" << endl;
+            cout << "Choose amount to Deposit : ";
+            cin >> newBalance;
+            cin.ignore();
+            if (newBalance < 99)
+            {
+                cout << "Error : Minimum is 100" << endl;
+                repeater = false;
+            }
+        } while (!repeater);
+
+        pinVerification(this->pin, n);
+
+        while (getline(file, line))
+        {
+            location = line.find(",");
+            accNum = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
+            num = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
+            name = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
+            pass = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
+            pin = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            balance = stod(line);
+
+            if (accNum == ID && !found)
+            {
+                temp << accNum << "," << num << "," << name << "," << pass << "," << pin << "," << balance + newBalance << endl;
+                found = true;
+            }
+            else
+            {
+                temp << accNum << "," << num << "," << name << "," << pass << "," << pin << "," << balance << endl;
             }
         }
 
@@ -551,43 +673,45 @@ struct Signin
 
 int main()
 {
-    Signup signup;
-    Signin signin;
     int n;
+    do
+    {
+        Signup signup;
+        Signin signin;
 
-    displaySign();
-    cout << "1. Create account " << endl;
-    cout << "2. Check account " << endl;
-    cout << "3. Login as Admin " << endl;
-    cout << "4. exit " << endl;
-    cout << "Enter choice : ";
-    cin >> n;
-    cin.ignore();
-    switch (n)
-    {
-    case 1:
-    {
+        displaySign();
+        cout << "1. Create account " << endl;
+        cout << "2. Check account " << endl;
+        cout << "3. Login as Admin " << endl;
+        cout << "4. exit " << endl;
+        cout << "Enter choice : ";
+        cin >> n;
+        cin.ignore();
+        switch (n)
+        {
+        case 1:
+        {
 
-        signup.getInfo();
-        cout << "Successfully created account!" << endl;
+            signup.getInfo();
 
-        break;
-    }
-    case 2:
-    {
-        signin.signin();
-        break;
-    }
-    case 3:
-    {
+            break;
+        }
+        case 2:
+        {
+            signin.signin();
+            break;
+        }
+        case 3:
+        {
 
-        break;
-    }
-    default:
-    {
-        break;
-    }
-    }
+            break;
+        }
+        default:
+        {
+            break;
+        }
+        }
+    } while (n != 0);
 
     return 0;
 }
