@@ -5,6 +5,7 @@
 #include <random>
 #include <vector>
 #include <iomanip>
+#include <sstream>
 
 using namespace std;
 
@@ -285,6 +286,7 @@ struct Authenticate
 struct Signup
 {
     ofstream accounts;
+    ostringstream toString;
     Isvalid isValid;
     string accNumber, number, username, password, pin;
     double balance = 0.00;
@@ -376,11 +378,13 @@ struct Signup
 
         accNumber = accountNumGenerate();
 
-        accounts << accNumber << "," << number << "," << username << "," << password << "," << pin << "," << balance << endl;
+        toString << accNumber << "," << number << "," << username << "," << password << "," << pin << "," << balance << endl;
+        accounts << toString.str();
 
-        accounts.open(accNumber);
+        string newFile = accNumber + ".csv";
+        ofstream newfile(newFile);
 
-        accounts.close();
+        newfile.close();
     }
 
     string accountNumGenerate()
@@ -496,6 +500,11 @@ struct Signin
             {
                 repeater = true;
             }
+            if (newBalance < stod(getFromFile(accNumber, 6)))
+            {
+                repeater = true;
+            }
+
         } while (!repeater);
 
         while (getline(file, line))
