@@ -459,7 +459,7 @@ struct Signup
         return accNum;
     }
 };
-// note pag nagwiwithdraw tas naubos na ung attemp naproprocess padin ung transaction
+
 struct Signin
 {
     Authenticate authenticate;
@@ -470,7 +470,6 @@ struct Signin
 
     void signin()
     {
-
         bool checker = true;
 
         string name = {""}, pass = {""};
@@ -499,12 +498,39 @@ struct Signin
             else
             {
                 c = authenticate.user(name, pass);
+                // Check if account is frozen
+                ifstream file("SYSTEM_USERS.csv");
+                string line;
+                bool isFrozen = false;
+
+                while (getline(file, line))
+                {
+                    if (line.find(c) == 0)
+                    {
+                        if (line.find(",FROZEN") != string::npos)
+                        {
+                            isFrozen = true;
+                        }
+                        break;
+                    }
+                }
+                file.close();
+
+                if (isFrozen)
+                {
+                    cout << "Error: This account has been frozen." << endl;
+                    cout << "Please contact the administrator at 09693381708 to unfreeze your account." << endl;
+                    setAuditLog(c, "FAILED LOGIN - FROZEN ACCOUNT", 0.00, 0.00);
+                    return;
+                }
+
                 accNumber = getFromFile(c, 1);
                 number = getFromFile(c, 2);
                 username = getFromFile(c, 3);
                 password = getFromFile(c, 4);
                 pin = getFromFile(c, 5);
                 balance = stod(getFromFile(c, 6));
+                setAuditLog(accNumber, "LOGIN", 0.00, 0.00);
                 user();
                 checker = true;
             }
@@ -554,6 +580,25 @@ struct Signin
     {
         double balance = stod(getFromFile(accNumber, 6));
         cout << " CURRENT BALANCE : ₱" << fixed << setprecision(2) << balance << endl;
+        setAuditLog(accNumber, "CHECK BALANCE", balance, balance);
+    }
+
+    void generateReceipt(string transactionType, double amount, double balance)
+    {
+        cout << "\n==========================================" << endl;
+        cout << "              TRANSACTION RECEIPT          " << endl;
+        cout << "==========================================" << endl;
+        cout << "Date & Time: " << getCurrentDateTime() << endl;
+        cout << "Account Number: " << accNumber << endl;
+        cout << "Username: " << username << endl;
+        cout << "Transaction Type: " << transactionType << endl;
+        cout << "Amount: ₱" << fixed << setprecision(2) << amount << endl;
+        cout << "Current Balance: ₱" << fixed << setprecision(2) << balance << endl;
+        cout << "Transaction ID: " << transactionIdGenerate() << endl;
+        cout << "==========================================" << endl;
+        cout << "Thank you for banking with us!" << endl;
+        cout << "==========================================\n"
+             << endl;
     }
 
     void withdraw(string ID)
@@ -569,7 +614,6 @@ struct Signin
         bool repeater;
         bool found = false;
 
-        // dito mag rerepeat input pag mali ung ini input mo dito din nag tatake ng input
         do
         {
             repeater = true;
@@ -595,7 +639,10 @@ struct Signin
 
         pinVerification(this->pin, n);
         if (n == 0)
+        {
+            setAuditLog(ID, "FAILED WITHDRAW - PIN VERIFICATION FAILED", this->balance, this->balance);
             return;
+        }
 
         while (getline(file, line))
         {
@@ -650,6 +697,7 @@ struct Signin
         this->balance = stod(getFromFile(c, 6));
 
         toHistory(inputBalance, "WITHDRAW");
+        generateReceipt("WITHDRAW", inputBalance, this->balance);
     }
 
     void deposit(string ID)
@@ -685,7 +733,10 @@ struct Signin
 
         pinVerification(this->pin, n);
         if (n == 0)
+        {
+            setAuditLog(ID, "FAILED DEPOSIT - PIN VERIFICATION FAILED", this->balance, this->balance);
             return;
+        }
 
         while (getline(file, line))
         {
@@ -740,6 +791,7 @@ struct Signin
         this->balance = stod(getFromFile(c, 6));
 
         toHistory(inputBalance, "DEPOSIT");
+        generateReceipt("DEPOSIT", inputBalance, this->balance);
     }
 
     void viewTransaction()
@@ -792,6 +844,7 @@ struct Signin
         }
 
         file.close();
+        setAuditLog(accNumber, "VIEW TRANSACTION HISTORY", 0.00, 0.00);
     }
 
     void changePin(string ID)
@@ -836,7 +889,10 @@ struct Signin
 
         pinVerification(this->pin, n);
         if (n == 0)
+        {
+            setAuditLog(ID, "FAILED PIN CHANGE - PIN VERIFICATION FAILED", 0.00, 0.00);
             return;
+        }
 
         do
         {
@@ -920,6 +976,7 @@ struct Signin
         this->pin = newPin;
 
         toHistory(newBal, "CHANGE PIN");
+        setAuditLog(ID, "CHANGE PIN", 0.00, 0.00);
     }
 
     void toHistory(double &inputBalance, string action)
@@ -957,6 +1014,287 @@ struct Signin
         return transId;
     }
 };
+
+struct Admin
+{
+    bool authenticateAdmin()
+    {
+        string username, password;
+        cout << "\nEnter admin username: ";
+        getline(cin, username);
+        cout << "Enter admin password: ";
+        getline(cin, password);
+
+        return (username == "admin" && password == "admin");
+    }
+
+    void adminMenu()
+    {
+        if (!authenticateAdmin())
+        {
+            cout << "Invalid admin credentials!" << endl;
+            return;
+        }
+
+        int choice;
+        do
+        {
+            cout << "\n          ADMIN PANEL             " << endl;
+            cout << "1. View All Customers             " << endl;
+            cout << "2. Freeze/Unfreeze Account       " << endl;
+            cout << "3. Reverse Transaction           " << endl;
+            cout << "4. Audit Logs                    " << endl;
+            cout << "0. Logout                        " << endl;
+            cout << "\nEnter choice (0-4): ";
+            cin >> choice;
+            cin.ignore();
+
+            switch (choice)
+            {
+            case 1:
+                viewAllCustomers();
+                break;
+            case 2:
+                freezeUnfreezeAccount();
+                break;
+            case 3:
+                reverseTransaction();
+                break;
+            case 4:
+                viewAuditLog();
+                break;
+            case 0:
+                cout << "Logging out..." << endl;
+                break;
+            default:
+                cout << "Invalid choice. Please try again." << endl;
+                break;
+            }
+        } while (choice != 0);
+    }
+
+    void viewAllCustomers()
+    {
+        ifstream file("SYSTEM_USERS.csv");
+        string line;
+        string accNum, num, name, pass, pin, status;
+        double balance;
+        int location;
+
+        cout << "\nAll Customer Accounts:" << endl;
+        cout << setw(20) << "Account Number"
+             << setw(15) << "Phone Number"
+             << setw(20) << "Username"
+             << setw(15) << "Balance"
+             << setw(10) << "Status" << endl;
+        cout << string(80, '-') << endl;
+
+        while (getline(file, line))
+        {
+            location = line.find(",");
+            accNum = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            num = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            name = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            pass = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            pin = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            if (location != string::npos)
+            {
+                balance = stod(line.substr(0, location));
+                status = line.substr(location + 1);
+            }
+            else
+            {
+                balance = stod(line);
+                status = "ACTIVE";
+            }
+
+            cout << setw(20) << accNum
+                 << setw(15) << num
+                 << setw(20) << name
+                 << setw(15) << fixed << setprecision(2) << balance
+                 << setw(10) << status << endl;
+        }
+        cout << string(80, '-') << endl;
+        file.close();
+    }
+
+    void freezeUnfreezeAccount()
+    {
+        // Show all users first
+        viewAllCustomers();
+
+        // Now proceed with freeze/unfreeze
+        string accNumber;
+        int action;
+        cout << "\nEnter account number to modify (0 to return): ";
+        getline(cin, accNumber);
+        
+        if (accNumber == "0")
+            return;
+
+        cout << "1. Freeze Account" << endl;
+        cout << "2. Unfreeze Account" << endl;
+        cout << "Enter choice (1-2): ";
+        cin >> action;
+        cin.ignore();
+
+        ifstream file("SYSTEM_USERS.csv");
+        ofstream temp("temp.csv");
+        string line;
+        bool found = false;
+        string status = (action == 1) ? "FROZEN" : "ACTIVE";
+
+        while (getline(file, line))
+        {
+            if (line.find(accNumber) == 0)
+            {
+                found = true;
+                // Add status as a new field after balance
+                line += "," + status;
+                cout << "Account " << accNumber << " has been " << (action == 1 ? "frozen" : "unfrozen") << "." << endl;
+                setAuditLog(accNumber, (action == 1 ? "ACCOUNT FROZEN" : "ACCOUNT UNFROZEN"), 0.00, 0.00);
+            }
+            temp << line << endl;
+        }
+
+        if (!found)
+        {
+            cout << "Account not found!" << endl;
+        }
+
+        file.close();
+        temp.close();
+        remove("SYSTEM_USERS.csv");
+        rename("temp.csv", "SYSTEM_USERS.csv");
+    }
+
+    void reverseTransaction()
+    {
+        string accNumber, transID;
+        cout << "\nEnter account number (0 to return): ";
+        getline(cin, accNumber);
+        if (accNumber == "0")
+            return;
+
+        cout << "Enter transaction ID to reverse: ";
+        getline(cin, transID);
+
+        ifstream transFile(accNumber + ".csv");
+        ofstream temp("temp.csv");
+        string line;
+        bool found = false;
+        double amount = 0;
+
+        while (getline(transFile, line))
+        {
+            if (line.find(transID) == 0)
+            {
+                found = true;
+                // Get the amount from the transaction
+                stringstream ss(line);
+                string token;
+                vector<string> tokens;
+                while (getline(ss, token, ','))
+                {
+                    tokens.push_back(token);
+                }
+                if (tokens.size() >= 4)
+                {
+                    amount = stod(tokens[3]);
+                }
+                cout << "Transaction " << transID << " has been reversed." << endl;
+                setAuditLog(accNumber, "REVERSE TRANSACTION", amount, 0);
+            }
+            else
+            {
+                temp << line << endl;
+            }
+        }
+
+        if (!found)
+        {
+            cout << "Transaction not found!" << endl;
+        }
+
+        transFile.close();
+        temp.close();
+        remove((accNumber + ".csv").c_str());
+        rename("temp.csv", (accNumber + ".csv").c_str());
+    }
+
+    void viewAuditLog()
+    {
+        ifstream file("SYSTEM_AUDIT_LOG.csv");
+        string line;
+        string logID, time, userID, username, action, beforeBalance, afterBalance;
+        int location;
+
+        cout << "\nAudit Log:" << endl;
+        cout << setw(15) << "Log ID"
+             << setw(25) << "Time"
+             << setw(20) << "User ID"
+             << setw(20) << "Username"
+             << setw(20) << "Action"
+             << setw(15) << "Before"
+             << setw(15) << "After" << endl;
+        cout << string(130, '-') << endl;
+
+        while (getline(file, line))
+        {
+            location = line.find(",");
+            logID = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            time = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            userID = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            username = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            action = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            beforeBalance = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            afterBalance = line;
+
+            cout << setw(15) << logID
+                 << setw(25) << time
+                 << setw(20) << userID
+                 << setw(20) << username
+                 << setw(20) << action
+                 << setw(15) << beforeBalance
+                 << setw(15) << afterBalance << endl;
+        }
+        cout << string(130, '-') << endl;
+        file.close();
+    }
+};
+
 int main()
 {
     int n;
@@ -964,12 +1302,13 @@ int main()
     {
         Signup signup;
         Signin signin;
+        Admin admin;
 
         displaySign();
         cout << "1. Create account " << endl;
         cout << "2. Check account " << endl;
         cout << "3. Login as Admin " << endl;
-        cout << "4. exit " << endl;
+        cout << "0. exit " << endl;
         cout << "Enter choice : ";
         cin >> n;
         cin.ignore();
@@ -977,9 +1316,7 @@ int main()
         {
         case 1:
         {
-
             signup.getInfo();
-
             break;
         }
         case 2:
@@ -989,11 +1326,12 @@ int main()
         }
         case 3:
         {
-
+            admin.adminMenu();
             break;
         }
         default:
         {
+            cout << "Invalid choice. Please try again." << endl;
             break;
         }
         }
