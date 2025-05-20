@@ -49,7 +49,7 @@ string getFromFile(string accNumber, int n)
 {
     ifstream file("SYSTEM_USERS.csv");
     ostringstream toString;
-    string line, accNum = {""}, num, name, pass, pin;
+    string line, accNum = {""}, num, name, fullName, pass, pin;
     double balance;
     int location;
 
@@ -68,6 +68,10 @@ string getFromFile(string accNumber, int n)
         line = line.substr(location + 1, line.length());
 
         location = line.find(",");
+        fullName = line.substr(0, location);
+        line = line.substr(location + 1, line.length());
+
+        location = line.find(",");
         pass = line.substr(0, location);
         line = line.substr(location + 1, line.length());
 
@@ -75,7 +79,15 @@ string getFromFile(string accNumber, int n)
         pin = line.substr(0, location);
         line = line.substr(location + 1, line.length());
 
-        balance = stod(line);
+        location = line.find(",");
+        if (location != string::npos)
+        {
+            balance = stod(line.substr(0, location));
+        }
+        else
+        {
+            balance = stod(line);
+        }
 
         if (accNumber == accNum)
         {
@@ -91,12 +103,15 @@ string getFromFile(string accNumber, int n)
                 return name;
                 break;
             case 4:
-                return pass;
+                return fullName;
                 break;
             case 5:
-                return pin;
+                return pass;
                 break;
             case 6:
+                return pin;
+                break;
+            case 7:
                 return to_string(balance);
                 break;
             default:
@@ -136,9 +151,10 @@ void setAuditLog(string accNumber, string Action, double beforeBalance, double a
              << accNumber << ","
              << getFromFile(accNumber, 3) << ","
              << Action << ","
-             << beforeBalance << ","
-             << afterBalance << endl;
+             << fixed << setprecision(2) << beforeBalance << ","
+             << fixed << setprecision(2) << afterBalance << endl;
 
+    file << toString.str();
     file.close();
 }
 
@@ -286,7 +302,7 @@ struct Authenticate
     {
         ifstream file("SYSTEM_USERS.csv");
         ostringstream toString;
-        string line, accNum = {"0000-0000-0000"}, num, name, pass, pin;
+        string line, accNum = {"0000-0000-0000"}, num, name, fullName, pass, pin;
         double balance;
         int location;
 
@@ -305,6 +321,10 @@ struct Authenticate
             line = line.substr(location + 1, line.length());
 
             location = line.find(",");
+            fullName = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
             pass = line.substr(0, location);
             line = line.substr(location + 1, line.length());
 
@@ -312,7 +332,15 @@ struct Authenticate
             pin = line.substr(0, location);
             line = line.substr(location + 1, line.length());
 
-            balance = stod(line);
+            location = line.find(",");
+            if (location != string::npos)
+            {
+                balance = stod(line.substr(0, location));
+            }
+            else
+            {
+                balance = stod(line);
+            }
 
             if (user == name && password == pass)
             {
@@ -330,14 +358,16 @@ struct Signup
     ofstream accounts;
     ostringstream toString;
     Isvalid isValid;
-    string accNumber, number, username, password, pin;
+    string accNumber, number, username, password, pin, fullName;
     double balance = 0.00;
     bool checker = false;
 
     void getInfo()
     {
-
         accounts.open("SYSTEM_USERS.csv", ios::app);
+
+        cout << "Enter your Full Name: ";
+        getline(cin, fullName);
 
         do
         {
@@ -423,6 +453,7 @@ struct Signup
         toString << accNumber << ","
                  << number << ","
                  << username << ","
+                 << fullName << ","
                  << password << ","
                  << pin << ","
                  << balance << endl;
@@ -431,10 +462,12 @@ struct Signup
         string newFile = accNumber + ".csv";
         ofstream newfile(newFile);
 
+        accounts.close();
         newfile.close();
 
         cout << "Successfully created account!" << endl
              << endl;
+        cout << "Full Name: " << fullName << endl;
         cout << "Username : " << username << endl;
         cout << "Account Number : " << accNumber << endl;
 
@@ -464,7 +497,7 @@ struct Signin
 {
     Authenticate authenticate;
 
-    string accNumber, number, username, password, pin, c;
+    string accNumber, number, username, fullname, password, pin, c;
     int balance;
     int n;
 
@@ -527,9 +560,10 @@ struct Signin
                 accNumber = getFromFile(c, 1);
                 number = getFromFile(c, 2);
                 username = getFromFile(c, 3);
-                password = getFromFile(c, 4);
-                pin = getFromFile(c, 5);
-                balance = stod(getFromFile(c, 6));
+                fullname = getFromFile(c, 4);
+                    password = getFromFile(c, 5);
+                pin = getFromFile(c, 6);
+                balance = stod(getFromFile(c, 7));
                 setAuditLog(accNumber, "LOGIN", 0.00, 0.00);
                 user();
                 checker = true;
@@ -578,7 +612,7 @@ struct Signin
 
     void checkBalance()
     {
-        double balance = stod(getFromFile(accNumber, 6));
+        double balance = stod(getFromFile(accNumber, 7));
         cout << " CURRENT BALANCE : ₱" << fixed << setprecision(2) << balance << endl;
         setAuditLog(accNumber, "CHECK BALANCE", balance, balance);
     }
@@ -590,6 +624,7 @@ struct Signin
         cout << "==========================================" << endl;
         cout << "Date & Time: " << getCurrentDateTime() << endl;
         cout << "Account Number: " << accNumber << endl;
+        cout << "Full Name: " << getFromFile(accNumber, 4) << endl;
         cout << "Username: " << username << endl;
         cout << "Transaction Type: " << transactionType << endl;
         cout << "Amount: ₱" << fixed << setprecision(2) << amount << endl;
@@ -605,7 +640,7 @@ struct Signin
     {
         ifstream file("SYSTEM_USERS.csv");
         ofstream temp("temp.csv");
-        string line, accNum, num, name, pass, pin;
+        string line, accNum, num, name, fullName, pass, pin;
         string inputPin;
         int attempts = 5;
         double balance;
@@ -625,6 +660,12 @@ struct Signin
             {
                 return;
             }
+            if (inputBalance < 0)
+            {
+                cout << "Error: Cannot withdraw negative amount!" << endl;
+                repeater = false;
+                continue;
+            }
             if (0 != (static_cast<int>(inputBalance) % 100))
             {
                 cout << "Error: Amount must be in denominations of 100, 200, 500, or 1000" << endl;
@@ -641,6 +682,9 @@ struct Signin
         if (n == 0)
         {
             setAuditLog(ID, "FAILED WITHDRAW - PIN VERIFICATION FAILED", this->balance, this->balance);
+            file.close();
+            temp.close();
+            remove("temp.csv");
             return;
         }
 
@@ -659,6 +703,10 @@ struct Signin
             line = line.substr(location + 1, line.length());
 
             location = line.find(",");
+            fullName = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
             pass = line.substr(0, location);
             line = line.substr(location + 1, line.length());
 
@@ -666,26 +714,43 @@ struct Signin
             pin = line.substr(0, location);
             line = line.substr(location + 1, line.length());
 
-            balance = stod(line);
+            location = line.find(",");
+            if (location != string::npos)
+            {
+                balance = stod(line.substr(0, location));
+            }
+            else
+            {
+                balance = stod(line);
+            }
 
             if (accNum == ID && !found)
             {
+                double newBalance = balance - inputBalance;
                 temp << accNum << ","
                      << num << ","
                      << name << ","
+                     << fullName << ","
                      << pass << ","
                      << pin << ","
-                     << balance - inputBalance << endl;
+                     << newBalance << endl;
                 found = true;
+                setAuditLog(ID, "WITHDRAW", balance, newBalance);
             }
             else
             {
                 temp << accNum << ","
                      << num << ","
                      << name << ","
+                     << fullName << ","
                      << pass << ","
                      << pin << ","
-                     << balance << endl;
+                     << balance;
+                if (line.find(",") != string::npos)
+                {
+                    temp << "," << line.substr(line.find(",") + 1);
+                }
+                temp << endl;
             }
         }
 
@@ -694,7 +759,7 @@ struct Signin
 
         remove("SYSTEM_USERS.csv");
         rename("temp.csv", "SYSTEM_USERS.csv");
-        this->balance = stod(getFromFile(c, 6));
+        this->balance = stod(getFromFile(c, 7));
 
         toHistory(inputBalance, "WITHDRAW");
         generateReceipt("WITHDRAW", inputBalance, this->balance);
@@ -704,9 +769,7 @@ struct Signin
     {
         ifstream file("SYSTEM_USERS.csv");
         ofstream temp("temp.csv");
-        string line, accNum, num, name, pass, pin;
-        string inputPin;
-        int attempts = 5;
+        string line, accNum, num, name, fullName, pass, pin;
         double balance;
         int location;
         double inputBalance;
@@ -716,13 +779,21 @@ struct Signin
         do
         {
             repeater = true;
-            cout << "(Note that the bank only Deposit in denomination of 100, 200, 500 and 1000)" << endl;
-            cout << "Choose amount to Deposit(0 to return) : ";
+            cout << "Enter amount to Deposit(0 to return) : ";
             cin >> inputBalance;
             cin.ignore();
             if (inputBalance == 0)
             {
+                file.close();
+                temp.close();
+                remove("temp.csv");
                 return;
+            }
+            if (inputBalance < 0)
+            {
+                cout << "Error: Cannot deposit negative amount!" << endl;
+                repeater = false;
+                continue;
             }
             if (inputBalance < 99)
             {
@@ -732,9 +803,13 @@ struct Signin
         } while (!repeater);
 
         pinVerification(this->pin, n);
+
         if (n == 0)
         {
             setAuditLog(ID, "FAILED DEPOSIT - PIN VERIFICATION FAILED", this->balance, this->balance);
+            file.close();
+            temp.close();
+            remove("temp.csv");
             return;
         }
 
@@ -753,6 +828,10 @@ struct Signin
             line = line.substr(location + 1, line.length());
 
             location = line.find(",");
+            fullName = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
             pass = line.substr(0, location);
             line = line.substr(location + 1, line.length());
 
@@ -760,26 +839,43 @@ struct Signin
             pin = line.substr(0, location);
             line = line.substr(location + 1, line.length());
 
-            balance = stod(line);
+            location = line.find(",");
+            if (location != string::npos)
+            {
+                balance = stod(line.substr(0, location));
+            }
+            else
+            {
+                balance = stod(line);
+            }
 
             if (accNum == ID && !found)
             {
+                double newBalance = balance + inputBalance;
                 temp << accNum << ","
                      << num << ","
                      << name << ","
+                     << fullName << ","
                      << pass << ","
                      << pin << ","
-                     << balance + inputBalance << endl;
+                     << newBalance << endl;
                 found = true;
+                setAuditLog(ID, "DEPOSIT", balance, newBalance);
             }
             else
             {
                 temp << accNum << ","
                      << num << ","
                      << name << ","
+                     << fullName << ","
                      << pass << ","
                      << pin << ","
-                     << balance << endl;
+                     << balance;
+                if (line.find(",") != string::npos)
+                {
+                    temp << "," << line.substr(line.find(",") + 1);
+                }
+                temp << endl;
             }
         }
 
@@ -788,7 +884,7 @@ struct Signin
 
         remove("SYSTEM_USERS.csv");
         rename("temp.csv", "SYSTEM_USERS.csv");
-        this->balance = stod(getFromFile(c, 6));
+        this->balance = stod(getFromFile(c, 7));
 
         toHistory(inputBalance, "DEPOSIT");
         generateReceipt("DEPOSIT", inputBalance, this->balance);
@@ -852,7 +948,7 @@ struct Signin
         ifstream file("SYSTEM_USERS.csv");
         ofstream temp("temp.csv");
         Isvalid isValid;
-        string line, accNum, num, name, pass, pin;
+        string line, accNum, num, name, fullName, pass, pin;
         string inputPin;
         int attempts = 5;
         double balance, newBal = 0;
@@ -938,6 +1034,10 @@ struct Signin
             line = line.substr(location + 1, line.length());
 
             location = line.find(",");
+            fullName = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
             pass = line.substr(0, location);
             line = line.substr(location + 1, line.length());
 
@@ -945,16 +1045,30 @@ struct Signin
             pin = line.substr(0, location);
             line = line.substr(location + 1, line.length());
 
-            balance = stod(line);
+            location = line.find(",");
+            if (location != string::npos)
+            {
+                balance = stod(line.substr(0, location));
+            }
+            else
+            {
+                balance = stod(line);
+            }
 
             if (accNum == ID && !found)
             {
                 temp << accNum << ","
                      << num << ","
                      << name << ","
+                     << fullName << ","
                      << pass << ","
                      << reEnter << ","
-                     << balance << endl;
+                     << balance;
+                if (line.find(",") != string::npos)
+                {
+                    temp << "," << line.substr(line.find(",") + 1);
+                }
+                temp << endl;
                 found = true;
             }
             else
@@ -962,9 +1076,15 @@ struct Signin
                 temp << accNum << ","
                      << num << ","
                      << name << ","
+                     << fullName << ","
                      << pass << ","
                      << pin << ","
-                     << balance << endl;
+                     << balance;
+                if (line.find(",") != string::npos)
+                {
+                    temp << "," << line.substr(line.find(",") + 1);
+                }
+                temp << endl;
             }
         }
 
@@ -1077,7 +1197,7 @@ struct Admin
     {
         ifstream file("SYSTEM_USERS.csv");
         string line;
-        string accNum, num, name, pass, pin, status;
+        string accNum, num, name, fullName, pass, pin, status;
         double balance;
         int location;
 
@@ -1085,9 +1205,10 @@ struct Admin
         cout << setw(20) << "Account Number"
              << setw(15) << "Phone Number"
              << setw(20) << "Username"
+             << setw(30) << "Full Name"
              << setw(15) << "Balance"
              << setw(10) << "Status" << endl;
-        cout << string(80, '-') << endl;
+        cout << string(110, '-') << endl;
 
         while (getline(file, line))
         {
@@ -1101,6 +1222,10 @@ struct Admin
 
             location = line.find(",");
             name = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            fullName = line.substr(0, location);
             line = line.substr(location + 1);
 
             location = line.find(",");
@@ -1126,10 +1251,11 @@ struct Admin
             cout << setw(20) << accNum
                  << setw(15) << num
                  << setw(20) << name
+                 << setw(30) << fullName
                  << setw(15) << fixed << setprecision(2) << balance
                  << setw(10) << status << endl;
         }
-        cout << string(80, '-') << endl;
+        cout << string(110, '-') << endl;
         file.close();
     }
 
@@ -1143,7 +1269,7 @@ struct Admin
         int action;
         cout << "\nEnter account number to modify (0 to return): ";
         getline(cin, accNumber);
-        
+
         if (accNumber == "0")
             return;
 
@@ -1153,9 +1279,17 @@ struct Admin
         cin >> action;
         cin.ignore();
 
+        if (action != 1 && action != 2)
+        {
+            cout << "Invalid choice!" << endl;
+            return;
+        }
+
         ifstream file("SYSTEM_USERS.csv");
         ofstream temp("temp.csv");
-        string line;
+        string line, accNum, num, name, fullName, pass, pin;
+        double balance;
+        int location;
         bool found = false;
         string status = (action == 1) ? "FROZEN" : "ACTIVE";
 
@@ -1164,17 +1298,66 @@ struct Admin
             if (line.find(accNumber) == 0)
             {
                 found = true;
-                // Add status as a new field after balance
-                line += "," + status;
+
+                location = line.find(",");
+                accNum = line.substr(0, location);
+                line = line.substr(location + 1);
+
+                location = line.find(",");
+                num = line.substr(0, location);
+                line = line.substr(location + 1);
+
+                location = line.find(",");
+                name = line.substr(0, location);
+                line = line.substr(location + 1);
+
+                location = line.find(",");
+                fullName = line.substr(0, location);
+                line = line.substr(location + 1);
+
+                location = line.find(",");
+                pass = line.substr(0, location);
+                line = line.substr(location + 1);
+
+                location = line.find(",");
+                pin = line.substr(0, location);
+                line = line.substr(location + 1);
+
+                location = line.find(",");
+                if (location != string::npos)
+                {
+                    balance = stod(line.substr(0, location));
+                }
+                else
+                {
+                    balance = stod(line);
+                }
+
+                temp << accNum << ","
+                     << num << ","
+                     << name << ","
+                     << fullName << ","
+                     << pass << ","
+                     << pin << ","
+                     << balance << ","
+                     << status << endl;
+
                 cout << "Account " << accNumber << " has been " << (action == 1 ? "frozen" : "unfrozen") << "." << endl;
-                setAuditLog(accNumber, (action == 1 ? "ACCOUNT FROZEN" : "ACCOUNT UNFROZEN"), 0.00, 0.00);
+                setAuditLog(accNum, (action == 1 ? "ACCOUNT FROZEN" : "ACCOUNT UNFROZEN"), 0.00, 0.00);
             }
-            temp << line << endl;
+            else
+            {
+                temp << line << endl;
+            }
         }
 
         if (!found)
         {
             cout << "Account not found!" << endl;
+            file.close();
+            temp.close();
+            remove("temp.csv");
+            return;
         }
 
         file.close();
@@ -1196,29 +1379,42 @@ struct Admin
 
         ifstream transFile(accNumber + ".csv");
         ofstream temp("temp.csv");
-        string line;
+        string line, transNum, accNum, type, amount, amountAfter, time;
+        int location;
         bool found = false;
-        double amount = 0;
+        double amountValue = 0;
 
         while (getline(transFile, line))
         {
             if (line.find(transID) == 0)
             {
                 found = true;
-                // Get the amount from the transaction
-                stringstream ss(line);
-                string token;
-                vector<string> tokens;
-                while (getline(ss, token, ','))
-                {
-                    tokens.push_back(token);
-                }
-                if (tokens.size() >= 4)
-                {
-                    amount = stod(tokens[3]);
-                }
+
+                location = line.find(",");
+                transNum = line.substr(0, location);
+                line = line.substr(location + 1);
+
+                location = line.find(",");
+                accNum = line.substr(0, location);
+                line = line.substr(location + 1);
+
+                location = line.find(",");
+                type = line.substr(0, location);
+                line = line.substr(location + 1);
+
+                location = line.find(",");
+                amount = line.substr(0, location);
+                line = line.substr(location + 1);
+
+                location = line.find(",");
+                amountAfter = line.substr(0, location);
+                line = line.substr(location + 1);
+
+                time = line;
+                amountValue = stod(amount);
+
                 cout << "Transaction " << transID << " has been reversed." << endl;
-                setAuditLog(accNumber, "REVERSE TRANSACTION", amount, 0);
+                setAuditLog(accNumber, "REVERSE TRANSACTION", amountValue, 0);
             }
             else
             {
