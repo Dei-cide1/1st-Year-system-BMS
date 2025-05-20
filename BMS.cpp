@@ -6,6 +6,7 @@
 #include <vector>
 #include <iomanip>
 #include <sstream>
+#include <ctime>
 
 using namespace std;
 
@@ -27,41 +28,26 @@ void displaySign()
     cout << "Welcome to DAGGZ!" << endl
          << endl;
 }
-
-void pinVerification(string &pin, int &n)
+string generateLogID()
 {
-    string inputPin;
-    int attempts = {5};
-
-    do
+    string logID = {"AUDIT"};
+    for (int i = 0; i < 6; i++)
     {
-        cout << "Enter your 6-digit PIN: ";
-        getline(cin, inputPin);
+        uniform_int_distribution<> distrib(0, 9);
+        int randomNum = distrib(gen);
+        char digit = '0' + randomNum;
+        logID += digit;
 
-        if (inputPin != pin)
+        if (i == 2)
         {
-            attempts--;
-            if (attempts > 0)
-            {
-                cout << "Invalid PIN. " << attempts << " attempts remaining." << endl;
-            }
-            else
-            {
-                cout << "Error: Maximum attempts reached. Please contact the administrator. " << endl;
-                cout << " Automatically Logging out..." << endl
-                     << endl;
-                n = 0; // pag naging 0 to ibigsabihin maglologout kasi 0 ung condition ng logout dun sa user panel
-            }
+            logID += "-";
         }
-        else
-        {
-            break;
-        }
-    } while (attempts > 0);
+    }
+    return logID;
 }
 string getFromFile(string accNumber, int n)
 {
-    ifstream file("userAccounts.csv");
+    ifstream file("SYSTEM_USERS.csv");
     ostringstream toString;
     string line, accNum = {""}, num, name, pass, pin;
     double balance;
@@ -118,53 +104,78 @@ string getFromFile(string accNumber, int n)
             }
         }
     }
+    file.close();
     return accNum;
 }
-void editBalance(string &filename, string accNumber)
+string getCurrentDateTime()
 {
-    ifstream file(filename);
-    ofstream temp("temp.csv");
+    time_t now = time(0);
+    tm *ltm = localtime(&now);
+
+    ostringstream datetime;
+    datetime << (1900 + ltm->tm_year) << "-"
+             << setw(2) << setfill('0') << (1 + ltm->tm_mon) << "-"
+             << setw(2) << setfill('0') << ltm->tm_mday << " "
+             << setw(2) << setfill('0') << ltm->tm_hour << ":"
+             << setw(2) << setfill('0') << ltm->tm_min << ":"
+             << setw(2) << setfill('0') << ltm->tm_sec;
+
+    return datetime.str();
+}
+void setAuditLog(string accNumber, string Action, double beforeBalance, double afterBalance)
+{
+    // logID,time,userid,username,action,beforeBalance,afterBalance
+    ofstream file;
     ostringstream toString;
-    vector<string> fLine;
-    string line, accNum, num, name, pass, pin;
-    int balance;
-    int location;
+    string logID;
+    file.open("SYSTEM_AUDIT_LOG.csv", ios::app);
 
-    while (getline(file, line))
-    {
-        location = line.find(",");
-        accNum = line.substr(0, location);
-        line = line.substr(location + 1, line.length());
-
-        location = line.find(",");
-        num = line.substr(0, location);
-        line = line.substr(location + 1, line.length());
-
-        location = line.find(",");
-        name = line.substr(0, location);
-        line = line.substr(location + 1, line.length());
-
-        location = line.find(",");
-        pass = line.substr(0, location);
-        line = line.substr(location + 1, line.length());
-
-        location = line.find(",");
-        pin = line.substr(0, location);
-        line = line.substr(location + 1, line.length());
-
-        toString << fixed << setprecision(2);
-        toString << line;
-        balance = stod(line);
-
-        if (accNumber == accNum)
-        {
-            toString << fixed << setprecision(2);
-            toString << accNum << "," << num << "," << name << "," << pass << "," << pin << "," << balance << endl;
-            temp << toString.str();
-        }
-    }
+    logID = generateLogID();
+    toString << logID << ","
+             << getCurrentDateTime() << ","
+             << accNumber << ","
+             << getFromFile(accNumber, 3) << ","
+             << Action << ","
+             << beforeBalance << ","
+             << afterBalance << endl;
 
     file.close();
+}
+
+void pinVerification(string &pin, int &n)
+{
+    string inputPin;
+    int attempts = {5};
+
+    do
+    {
+        cout << "Enter your 6-digit PIN(0 to return) : ";
+        getline(cin, inputPin);
+        if (inputPin == "0")
+        {
+            return;
+        }
+        if (inputPin != pin)
+        {
+            attempts--;
+            if (attempts > 0)
+            {
+                cout << "Invalid PIN. " << attempts << " attempts remaining." << endl;
+            }
+            else
+            {
+                cout << "Error: Maximum attempts reached. Please contact the administrator. " << endl;
+                cout << " Automatically Logging out..." << endl
+                     << endl;
+                n = 0; // pag naging 0 to ibigsabihin maglologout kasi 0 ung condition ng logout dun sa user panel
+                return;
+            }
+        }
+        else
+        {
+            break;
+        }
+    } while (attempts > 0);
 }
 
 struct Isvalid
@@ -273,7 +284,7 @@ struct Authenticate
 
     string user(string user, string password)
     {
-        ifstream file("userAccounts.csv");
+        ifstream file("SYSTEM_USERS.csv");
         ostringstream toString;
         string line, accNum = {"0000-0000-0000"}, num, name, pass, pin;
         double balance;
@@ -326,7 +337,7 @@ struct Signup
     void getInfo()
     {
 
-        accounts.open("userAccounts.csv", ios::app);
+        accounts.open("SYSTEM_USERS.csv", ios::app);
 
         do
         {
@@ -409,7 +420,12 @@ struct Signup
 
         accNumber = accountNumGenerate();
 
-        toString << accNumber << "," << number << "," << username << "," << password << "," << pin << "," << balance << endl;
+        toString << accNumber << ","
+                 << number << ","
+                 << username << ","
+                 << password << ","
+                 << pin << ","
+                 << balance << endl;
         accounts << toString.str();
 
         string newFile = accNumber + ".csv";
@@ -421,6 +437,8 @@ struct Signup
              << endl;
         cout << "Username : " << username << endl;
         cout << "Account Number : " << accNumber << endl;
+
+        setAuditLog(accNumber, "CREATE ACCOUNT", 0.00, 0.00);
     }
 
     string accountNumGenerate()
@@ -441,7 +459,7 @@ struct Signup
         return accNum;
     }
 };
-
+// note pag nagwiwithdraw tas naubos na ung attemp naproprocess padin ung transaction
 struct Signin
 {
     Authenticate authenticate;
@@ -464,8 +482,15 @@ struct Signin
             {
                 cout << "Incorrect Username or Password" << endl;
             }
+            cout << "(0 to return)" << endl;
+
             getUser(name);
             getPass(pass);
+
+            if (name == "0")
+            {
+                return;
+            }
 
             if (authenticate.user(name, pass) == "0000-0000-0000")
             {
@@ -493,10 +518,12 @@ struct Signin
             cout << "1. Check balance " << endl;
             cout << "2. Withdraw Cash " << endl;
             cout << "3. Deposit Cash " << endl;
-            cout << "4.Transaction History " << endl;
+            cout << "4. Transaction History " << endl;
             cout << "5. Change pin " << endl;
+            cout << "0. Logout" << endl;
             cout << "Enter choice : ";
             cin >> n;
+            cin.ignore();
 
             switch (n)
             {
@@ -509,7 +536,14 @@ struct Signin
             case 3:
                 deposit(accNumber);
                 break;
+            case 4:
+                viewTransaction();
+                break;
+            case 5:
+                changePin(accNumber);
+                break;
             default:
+                cout << "Invalid choice. Please try again." << endl;
                 break;
             }
 
@@ -524,14 +558,14 @@ struct Signin
 
     void withdraw(string ID)
     {
-        ifstream file("userAccounts.csv");
+        ifstream file("SYSTEM_USERS.csv");
         ofstream temp("temp.csv");
         string line, accNum, num, name, pass, pin;
         string inputPin;
         int attempts = 5;
         double balance;
         int location;
-        double newBalance;
+        double inputBalance;
         bool repeater;
         bool found = false;
 
@@ -540,15 +574,19 @@ struct Signin
         {
             repeater = true;
             cout << "(Note that the bank only withdraw in denomination of 100, 200, 500 and 1000)" << endl;
-            cout << "Choose amount to Withdraw : ";
-            cin >> newBalance;
+            cout << "Choose amount to Withdraw(0 to return) : ";
+            cin >> inputBalance;
             cin.ignore();
-            if (0 != (static_cast<int>(newBalance) % 100))
+            if (inputBalance == 0)
+            {
+                return;
+            }
+            if (0 != (static_cast<int>(inputBalance) % 100))
             {
                 cout << "Error: Amount must be in denominations of 100, 200, 500, or 1000" << endl;
                 repeater = false;
             }
-            if (newBalance > this->balance)
+            if (inputBalance > this->balance)
             {
                 cout << "Error: Insufficient balance. Your current balance is ₱" << fixed << setprecision(2) << this->balance << endl;
                 repeater = false;
@@ -556,6 +594,8 @@ struct Signin
         } while (!repeater);
 
         pinVerification(this->pin, n);
+        if (n == 0)
+            return;
 
         while (getline(file, line))
         {
@@ -583,32 +623,45 @@ struct Signin
 
             if (accNum == ID && !found)
             {
-                temp << accNum << "," << num << "," << name << "," << pass << "," << pin << "," << balance - newBalance << endl;
+                temp << accNum << ","
+                     << num << ","
+                     << name << ","
+                     << pass << ","
+                     << pin << ","
+                     << balance - inputBalance << endl;
                 found = true;
             }
             else
             {
-                temp << accNum << "," << num << "," << name << "," << pass << "," << pin << "," << balance << endl;
+                temp << accNum << ","
+                     << num << ","
+                     << name << ","
+                     << pass << ","
+                     << pin << ","
+                     << balance << endl;
             }
         }
 
         temp.close();
         file.close();
 
-        remove("userAccounts.csv");
-        rename("temp.csv", "userAccounts.csv");
+        remove("SYSTEM_USERS.csv");
+        rename("temp.csv", "SYSTEM_USERS.csv");
+        this->balance = stod(getFromFile(c, 6));
+
+        toHistory(inputBalance, "WITHDRAW");
     }
 
     void deposit(string ID)
     {
-        ifstream file("userAccounts.csv");
+        ifstream file("SYSTEM_USERS.csv");
         ofstream temp("temp.csv");
         string line, accNum, num, name, pass, pin;
         string inputPin;
         int attempts = 5;
         double balance;
         int location;
-        double newBalance;
+        double inputBalance;
         bool repeater;
         bool found = false;
 
@@ -616,10 +669,14 @@ struct Signin
         {
             repeater = true;
             cout << "(Note that the bank only Deposit in denomination of 100, 200, 500 and 1000)" << endl;
-            cout << "Choose amount to Deposit : ";
-            cin >> newBalance;
+            cout << "Choose amount to Deposit(0 to return) : ";
+            cin >> inputBalance;
             cin.ignore();
-            if (newBalance < 99)
+            if (inputBalance == 0)
+            {
+                return;
+            }
+            if (inputBalance < 99)
             {
                 cout << "Error : Minimum is 100" << endl;
                 repeater = false;
@@ -627,6 +684,8 @@ struct Signin
         } while (!repeater);
 
         pinVerification(this->pin, n);
+        if (n == 0)
+            return;
 
         while (getline(file, line))
         {
@@ -654,23 +713,250 @@ struct Signin
 
             if (accNum == ID && !found)
             {
-                temp << accNum << "," << num << "," << name << "," << pass << "," << pin << "," << balance + newBalance << endl;
+                temp << accNum << ","
+                     << num << ","
+                     << name << ","
+                     << pass << ","
+                     << pin << ","
+                     << balance + inputBalance << endl;
                 found = true;
             }
             else
             {
-                temp << accNum << "," << num << "," << name << "," << pass << "," << pin << "," << balance << endl;
+                temp << accNum << ","
+                     << num << ","
+                     << name << ","
+                     << pass << ","
+                     << pin << ","
+                     << balance << endl;
             }
         }
 
         temp.close();
         file.close();
 
-        remove("userAccounts.csv");
-        rename("temp.csv", "userAccounts.csv");
+        remove("SYSTEM_USERS.csv");
+        rename("temp.csv", "SYSTEM_USERS.csv");
+        this->balance = stod(getFromFile(c, 6));
+
+        toHistory(inputBalance, "DEPOSIT");
+    }
+
+    void viewTransaction()
+    {
+        ifstream file(accNumber + ".csv");
+        string line;
+        string transactionID, accountNumber, type, amount, amountAfter, time;
+        int location;
+
+        cout << "\nTransaction History:" << endl;
+        cout << setw(15) << "TransactionID"
+             << setw(25) << "Account Number"
+             << setw(15) << "Type"
+             << setw(15) << "Amount"
+             << setw(15) << "Amount after"
+             << setw(25) << "Time"
+             << endl;
+
+        while (getline(file, line))
+        {
+            location = line.find(",");
+            transactionID = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            accountNumber = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            type = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            amount = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            amountAfter = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            time = line;
+
+            cout << setw(15) << transactionID
+                 << setw(25) << accountNumber
+                 << setw(15) << type
+                 << setw(15) << amount
+                 << setw(15) << amountAfter
+                 << setw(25) << time
+                 << endl;
+        }
+
+        file.close();
+    }
+
+    void changePin(string ID)
+    {
+        ifstream file("SYSTEM_USERS.csv");
+        ofstream temp("temp.csv");
+        Isvalid isValid;
+        string line, accNum, num, name, pass, pin;
+        string inputPin;
+        int attempts = 5;
+        double balance, newBal = 0;
+        int location;
+        string newPin, reEnter;
+        bool repeater;
+        bool found = false, checker = true;
+
+        string username = {""}, password = {""};
+
+        do
+        {
+            if (!checker)
+            {
+                cout << "Incorrect Username or Password" << endl;
+            }
+            getUser(username);
+            getPass(password);
+
+            if (name == "0")
+            {
+                return;
+            }
+
+            if (authenticate.user(username, password) == "0000-0000-0000")
+            {
+                checker = false;
+            }
+            else
+            {
+                checker = true;
+            }
+        } while (!checker);
+
+        pinVerification(this->pin, n);
+        if (n == 0)
+            return;
+
+        do
+        {
+            checker = false;
+
+            cout << "Must contain a 6 combination number" << endl;
+            cout << "Enter your New 6 digit PIN" << endl;
+            getline(cin, newPin);
+
+            if (!isValid.pin(newPin))
+            {
+                cout << "Invalid pin please try again" << endl;
+                checker = !isValid.pin(newPin);
+            }
+            else
+            {
+                cout << "Re-enter your New 6 digit PIN" << endl;
+                getline(cin, reEnter);
+                if (newPin == reEnter)
+                {
+                    checker = !isValid.pin(newPin);
+                }
+                else
+                {
+                    cout << "Error : PINs do not match" << endl;
+                    repeater = true;
+                }
+            }
+        } while (checker);
+
+        while (getline(file, line))
+        {
+            location = line.find(",");
+            accNum = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
+            num = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
+            name = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
+            pass = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            location = line.find(",");
+            pin = line.substr(0, location);
+            line = line.substr(location + 1, line.length());
+
+            balance = stod(line);
+
+            if (accNum == ID && !found)
+            {
+                temp << accNum << ","
+                     << num << ","
+                     << name << ","
+                     << pass << ","
+                     << reEnter << ","
+                     << balance << endl;
+                found = true;
+            }
+            else
+            {
+                temp << accNum << ","
+                     << num << ","
+                     << name << ","
+                     << pass << ","
+                     << pin << ","
+                     << balance << endl;
+            }
+        }
+
+        temp.close();
+        file.close();
+
+        remove("SYSTEM_USERS.csv");
+        rename("temp.csv", "SYSTEM_USERS.csv");
+        this->pin = newPin;
+
+        toHistory(newBal, "CHANGE PIN");
+    }
+
+    void toHistory(double &inputBalance, string action)
+    {
+        string transactionId = transactionIdGenerate();
+        ostringstream toString;
+
+        toString << transactionId << ","
+                 << accNumber << ","
+                 << action << ","
+                 << inputBalance << ","
+                 << balance << ","
+                 << getCurrentDateTime() << endl;
+
+        ofstream transactionFile(accNumber + ".csv", ios::app);
+        transactionFile << toString.str();
+        transactionFile.close();
+    }
+
+    string transactionIdGenerate()
+    {
+        string transId = {""};
+        for (int i = 0; i < 9; i++)
+        {
+            uniform_int_distribution<> distrib(0, 9);
+            int randomNum = distrib(gen);
+            char digit = '0' + randomNum;
+            transId += digit;
+
+            if (i == 2 || i == 5)
+            {
+                transId += "-";
+            }
+        }
+        return transId;
     }
 };
-
 int main()
 {
     int n;
