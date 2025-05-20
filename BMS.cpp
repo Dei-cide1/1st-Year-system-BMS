@@ -14,22 +14,23 @@ using namespace std;
 random_device rd;
 mt19937 gen(rd());
 
-void clearScreen() {
-    #ifdef _WIN32
-        system("cls");
-    #else
-        system("clear");
-    #endif
+void clearScreen()
+{
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
 }
 
 void getUser(string &user)
 {
-    cout << " Username :" << endl;
+    cout << " \nUsername :" << endl;
     getline(cin, user);
 }
 void getPass(string &pass)
 {
-    cout << " Password :" << endl;
+    cout << " \nPassword :" << endl;
     getline(cin, pass);
 }
 void displaySign()
@@ -174,10 +175,13 @@ void pinVerification(string &pin, int &n)
 
     do
     {
-        cout << "Enter your 6-digit PIN(0 to return) : ";
+        cout << "\nEnter your 6-digit PIN(0 to return) : ";
         getline(cin, inputPin);
         if (inputPin == "0")
         {
+            n = -1;
+            cout << "\nPress Enter to continue...";
+            cin.get();
             clearScreen();
             return;
         }
@@ -186,19 +190,25 @@ void pinVerification(string &pin, int &n)
             attempts--;
             if (attempts > 0)
             {
+                clearScreen();
                 cout << "Invalid PIN. " << attempts << " attempts remaining." << endl;
             }
             else
             {
-                cout << "Error: Maximum attempts reached. Please contact the administrator. " << endl;
+                cout << "Error: Maximum attempts reached. Please contact the administrator. " << endl
+                     << endl;
                 cout << " Automatically Logging out..." << endl
                      << endl;
+                cout << "\nPress Enter to continue...";
+                cin.get();
+                clearScreen();
                 n = 0; // pag naging 0 to ibigsabihin maglologout kasi 0 ung condition ng logout dun sa user panel
                 return;
             }
         }
         else
         {
+            clearScreen();
             break;
         }
     } while (attempts > 0);
@@ -226,6 +236,36 @@ struct Isvalid
             return false;
         }
         return true;
+    }
+
+    bool usernameExists(string username)
+    {
+        ifstream file("SYSTEM_USERS.csv");
+        string line;
+        int location;
+
+        while (getline(file, line))
+        {
+            // Skip account number
+            location = line.find(",");
+            line = line.substr(location + 1);
+
+            // Skip phone number
+            location = line.find(",");
+            line = line.substr(location + 1);
+
+            // Get username
+            location = line.find(",");
+            string existingUsername = line.substr(0, location);
+
+            if (username == existingUsername)
+            {
+                file.close();
+                return true;
+            }
+        }
+        file.close();
+        return false;
     }
 
     bool username(string name)
@@ -296,6 +336,17 @@ struct Isvalid
         for (int i = 0; i < pin.length(); i++)
         {
             if (!isdigit(pin[i]))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    bool fullName(string name)
+    {
+        for (int i = 0; i < name.length(); i++)
+        {
+            if (!isalpha(name[i]))
             {
                 return false;
             }
@@ -376,21 +427,38 @@ struct Signup
     {
         accounts.open("SYSTEM_USERS.csv", ios::app);
 
-        cout << "Enter your Full Name: ";
-        getline(cin, fullName);
-
         do
         {
             if (checker)
             {
-                cout << "Invalid phone number please try again" << endl;
+                cout << "\nError: Invalid fullname must be alphabetical letters only please try again" << "\033[0m" << endl;
+            }
+            cout << "\033[3m" << "\nmust be alphabetical letters only " << "\033[0m" << endl;
+            cout << "\nEnter your Full Name (0 to return): ";
+            getline(cin, fullName);
+            if (fullName == "0")
+            {
+                return;
+            }
+            checker = isValid.fullName(fullName);
+        } while (checker);
+        checker = false;
+        do
+        {
+            if (checker)
+            {
+                cout << "\nError: Invalid phone number please try again" << endl;
             }
 
-            cout << " Only digits " << endl;
-            cout << " Ph number only (09) " << endl;
-            cout << "No spaces, hyphens, or letters" << endl;
-            cout << "Number :" << endl;
+            cout << "\033[3m" << " \nOnly digits " << "\033[0m" << endl;
+            cout << "\033[3m" << " Ph number only (09) " << "\033[0m" << endl;
+            cout << "\033[3m" << " No spaces, hyphens, or letters" << "\033[0m" << endl;
+            cout << "\nNumber : " << endl;
             cin >> number;
+            if (number == "0")
+            {
+                return;
+            }
             checker = isValid.number(number);
         } while (!checker);
 
@@ -401,31 +469,46 @@ struct Signup
         {
             if (checker)
             {
-                cout << "Invalid username please try again" << endl;
+                cout << "\nError: Invalid username please try again" << endl;
             }
-            cout << "Must contain: " << endl;
-            cout << "At least one lowercase letter (a-z)" << endl;
-            cout << "At least one uppercase letter (A-Z)" << endl;
-            cout << "At least one digit (0-9)" << endl;
-            cout << "Must not contain hyphens (-)" << endl;
-            cout << "Minimum length: typically 6–12 characters" << endl;
+
+            cout << "\033[3m" << "\nMust contain: " << "\033[0m" << endl;
+            cout << "\033[3m" << "At least one lowercase letter (a-z)" << "\033[0m" << endl;
+            cout << "\033[3m" << "At least one uppercase letter (A-Z)" << "\033[0m" << endl;
+            cout << "\033[3m" << "At least one digit (0-9)" << "\033[0m" << endl;
+            cout << "\033[3m" << "Must not contain hyphens (-)" << "\033[0m" << endl;
+            cout << "\033[3m" << "Minimum length: typically 6–12 characters" << "\033[0m" << endl;
 
             getUser(username);
-            checker = isValid.username(username);
-        } while (!checker);
+            if (fullName == "0")
+            {
+                return;
+            }
+            if (isValid.usernameExists(username))
+            {
+                cout << "\nError: Username already exists. Please choose a different username." << endl;
+                checker = true;
+                continue;
+            }
+            checker = !isValid.username(username);
+        } while (checker);
         checker = false;
         do
         {
             if (checker)
             {
-                cout << "Invalid password please try again" << endl;
+                cout << "\nError: Invalid password please try again" << endl;
             }
-            cout << "Must contain: " << endl;
-            cout << "At least one lowercase letter (a-z)" << endl;
-            cout << "At least one uppercase letter (A-Z)" << endl;
-            cout << "At least one digit (0-9)" << endl;
-            cout << "Minimum length: 8 characters" << endl;
+            cout << "\033[3m" << "\nMust contain: " << "\033[0m" << endl;
+            cout << "\033[3m" << "At least one lowercase letter (a-z)" << "\033[0m" << endl;
+            cout << "\033[3m" << "At least one uppercase letter (A-Z)" << "\033[0m" << endl;
+            cout << "\033[3m" << "At least one digit (0-9)" << "\033[0m" << endl;
+            cout << "\033[3m" << "Minimum length: 8 characters" << "\033[0m" << endl;
             getPass(password);
+            if (fullName == "0")
+            {
+                return;
+            }
             checker = isValid.password(password);
         } while (!checker);
         checker = false;
@@ -434,19 +517,25 @@ struct Signup
             string secondTry;
             if (checker)
             {
-                cout << "Invalid pin please try again" << endl;
+                cout << "\nError: Invalid pin please try again" << endl;
             }
-            cout << "Must contain a 6 combination number" << endl;
-            cout << "Enter your 6 digit PIN" << endl;
+            cout << "\033[3m" << "\nMust contain a 6 combination number" << "\033[0m" << endl;
+            cout << "\nEnter your 6 digit PIN (0 to return) : " << endl;
             cin >> pin;
+            cin.ignore();
+            if (fullName == "0")
+            {
+                return;
+            }
             if (!isValid.pin(pin))
             {
                 checker = !isValid.pin(pin);
             }
             else
             {
-                cout << "Re-enter your 6 digit PIN" << endl;
+                cout << "\nRe-enter your 6 digit PIN : " << endl;
                 cin >> secondTry;
+                cin.ignore();
                 if (pin == secondTry)
                 {
                     checker = !isValid.pin(pin);
@@ -474,12 +563,12 @@ struct Signup
 
         accounts.close();
         newfile.close();
-
+        clearScreen();
         cout << "Successfully created account!" << endl
              << endl;
-        cout << "Full Name: " << fullName << endl;
-        cout << "Username : " << username << endl;
-        cout << "Account Number : " << accNumber << endl;
+        cout << "Full Name: " << "\033[3m" << fullName << "\033[0m" << endl;
+        cout << "Username : " << "\033[3m" << username << "\033[0m" << endl;
+        cout << "Account Number : " << "\033[3m" << accNumber << "\033[0m" << endl;
 
         setAuditLog(accNumber, "CREATE ACCOUNT", 0.00, 0.00);
     }
@@ -521,9 +610,8 @@ struct Signin
         {
             if (!checker)
             {
-                cout << "Incorrect Username or Password" << endl;
+                cout << "\nIncorrect Username or Password" << endl;
             }
-            cout << "(0 to return)" << endl;
 
             getUser(name);
             getPass(pass);
@@ -560,9 +648,14 @@ struct Signin
 
                 if (isFrozen)
                 {
-                    cout << "Error: This account has been frozen." << endl;
-                    cout << "Please contact the administrator at 09693381708 to unfreeze your account." << endl;
+                    cout << "\nError: This account has been frozen." << endl;
+                    cout << "\nPlease contact the administrator at 09693381708 to unfreeze your account." << endl;
                     setAuditLog(c, "FAILED LOGIN - FROZEN ACCOUNT", 0.00, 0.00);
+
+                    cout << "\nPress Enter to continue...";
+                    cin.get();
+                    clearScreen();
+
                     return;
                 }
 
@@ -576,6 +669,7 @@ struct Signin
                 setAuditLog(accNumber, "LOGIN", 0.00, 0.00);
                 user();
                 checker = true;
+                clearScreen();
             }
         } while (!checker);
     }
@@ -584,16 +678,19 @@ struct Signin
     {
         do
         {
-            cout << "Welcome, " << username << "!" << endl << endl;
+            cout << "\n Welcome, " << "\033[3m" << username << "\033[0m" << "!" << endl
+                 << endl;
             cout << "1. Check balance " << endl;
             cout << "2. Withdraw Cash " << endl;
             cout << "3. Deposit Cash " << endl;
             cout << "4. Transaction History " << endl;
             cout << "5. Change pin " << endl;
-            cout << "0. Logout" << endl;
+            cout << "0. Logout" << endl
+                 << endl;
             cout << "Enter choice : ";
             cin >> n;
             cin.ignore();
+            clearScreen();
 
             switch (n)
             {
@@ -601,24 +698,28 @@ struct Signin
                 checkBalance();
                 cout << "\nPress Enter to continue...";
                 cin.get();
+                clearScreen();
                 break;
             case 2:
                 withdraw(accNumber);
-                cout << "\nPress Enter to continue...";
-                cin.get();
                 break;
             case 3:
                 deposit(accNumber);
-                cout << "\nPress Enter to continue...";
-                cin.get();
                 break;
             case 4:
                 viewTransaction();
                 cout << "\nPress Enter to continue...";
                 cin.get();
+                clearScreen();
                 break;
             case 5:
                 changePin(accNumber);
+                cout << "\nPress Enter to continue...";
+                cin.get();
+                clearScreen();
+                break;
+            case 0:
+                cout << "Logging out..." << endl;
                 cout << "\nPress Enter to continue...";
                 cin.get();
                 break;
@@ -635,27 +736,31 @@ struct Signin
     void checkBalance()
     {
         double balance = stod(getFromFile(accNumber, 7));
-        cout << " CURRENT BALANCE : ₱" << fixed << setprecision(2) << balance << endl;
+        cout << " CURRENT BALANCE : Php" << fixed << setprecision(2) << balance << endl;
         setAuditLog(accNumber, "CHECK BALANCE", balance, balance);
     }
 
     void generateReceipt(string transactionType, double amount, double balance)
     {
-        cout << "\n==========================================" << endl;
-        cout << "              TRANSACTION RECEIPT          " << endl;
-        cout << "==========================================" << endl;
-        cout << "Date & Time: " << getCurrentDateTime() << endl;
-        cout << "Account Number: " << accNumber << endl;
-        cout << "Full Name: " << getFromFile(accNumber, 4) << endl;
-        cout << "Username: " << username << endl;
-        cout << "Transaction Type: " << transactionType << endl;
-        cout << "Amount: ₱" << fixed << setprecision(2) << amount << endl;
-        cout << "Current Balance: ₱" << fixed << setprecision(2) << balance << endl;
-        cout << "Transaction ID: " << transactionIdGenerate() << endl;
-        cout << "==========================================" << endl;
-        cout << "Thank you for banking with us!" << endl;
-        cout << "==========================================\n"
+
+        cout << "              TRANSACTION RECEIPT          " << endl
              << endl;
+
+        cout << "Date & Time: " << "\033[3m" << getCurrentDateTime() << "\033[0m" << endl;
+        cout << "Account Number: " << "\033[3m" << accNumber << "\033[0m" << endl;
+        cout << "Full Name: " << "\033[3m" << getFromFile(accNumber, 4) << "\033[0m" << endl;
+        cout << "Username: " << "\033[3m" << username << "\033[0m" << endl;
+        cout << "Transaction Type: " << "\033[3m" << transactionType << "\033[0m" << endl;
+        cout << "Amount: ₱" << "\033[3m" << fixed << setprecision(2) << amount << "\033[0m" << endl;
+        cout << "Current Balance: ₱" << "\033[3m" << fixed << setprecision(2) << balance << "\033[0m" << endl;
+        cout << "Transaction ID: " << "\033[3m" << transactionIdGenerate() << "\033[0m" << endl;
+
+        cout << "Thank you for banking with us!" << endl
+             << endl;
+
+        cout << "\nPress Enter to continue...";
+        cin.get();
+        clearScreen();
     }
 
     void withdraw(string ID)
@@ -674,34 +779,54 @@ struct Signin
         do
         {
             repeater = true;
-            cout << "(Note that the bank only withdraw in denomination of 100, 200, 500 and 1000)" << endl;
-            cout << "Choose amount to Withdraw(0 to return) : ";
+            cout << "\033[3m" << "(Note that the bank only withdraw in denomination of 100, 200, 500 and 1000)" << "\033[0m" << endl;
+            cout << "\nChoose amount to Withdraw(0 to return) : ";
             cin >> inputBalance;
             cin.ignore();
             if (inputBalance == 0)
             {
+                cout << "\nPress Enter to continue...";
+                cin.get();
+                clearScreen();
                 return;
             }
             if (inputBalance < 0)
             {
                 cout << "Error: Cannot withdraw negative amount!" << endl;
                 repeater = false;
+                cout << "\nPress Enter to continue...";
+                cin.get();
+                clearScreen();
                 continue;
             }
             if (0 != (static_cast<int>(inputBalance) % 100))
             {
                 cout << "Error: Amount must be in denominations of 100, 200, 500, or 1000" << endl;
                 repeater = false;
+                cout << "\nPress Enter to continue...";
+                cin.get();
+                clearScreen();
             }
             if (inputBalance > this->balance)
             {
-                cout << "Error: Insufficient balance. Your current balance is ₱" << fixed << setprecision(2) << this->balance << endl;
+                cout << "Error: Insufficient balance. Your current balance is php" << fixed << setprecision(2) << this->balance << endl;
                 repeater = false;
+                cout << "\nPress Enter to continue...";
+                cin.get();
+                clearScreen();
             }
         } while (!repeater);
 
         pinVerification(this->pin, n);
-        if (n == 0)
+        if (n == -1)
+        {
+            setAuditLog(ID, "CANCELLED WITHDRAW", this->balance, this->balance);
+            file.close();
+            temp.close();
+            remove("temp.csv");
+            return;
+        }
+        if (n == 0) // Check for logout
         {
             setAuditLog(ID, "FAILED WITHDRAW - PIN VERIFICATION FAILED", this->balance, this->balance);
             file.close();
@@ -801,7 +926,7 @@ struct Signin
         do
         {
             repeater = true;
-            cout << "Enter amount to Deposit(0 to return) : ";
+            cout << " Enter amount to Deposit(0 to return) : ";
             cin >> inputBalance;
             cin.ignore();
             if (inputBalance == 0)
@@ -809,23 +934,39 @@ struct Signin
                 file.close();
                 temp.close();
                 remove("temp.csv");
+                cout << "\nPress Enter to continue...";
+                cin.get();
+                clearScreen();
                 return;
             }
             if (inputBalance < 0)
             {
                 cout << "Error: Cannot deposit negative amount!" << endl;
                 repeater = false;
+                cout << "\nPress Enter to continue...";
+                cin.get();
+                clearScreen();
                 continue;
             }
             if (inputBalance < 99)
             {
                 cout << "Error : Minimum is 100" << endl;
+                cout << "\nPress Enter to continue...";
+                cin.get();
+                clearScreen();
                 repeater = false;
             }
         } while (!repeater);
 
         pinVerification(this->pin, n);
-
+        if (n == -1)
+        {
+            setAuditLog(ID, "CANCELLED WITHDRAW", this->balance, this->balance);
+            file.close();
+            temp.close();
+            remove("temp.csv");
+            return;
+        }
         if (n == 0)
         {
             setAuditLog(ID, "FAILED DEPOSIT - PIN VERIFICATION FAILED", this->balance, this->balance);
@@ -983,15 +1124,22 @@ struct Signin
 
         do
         {
+            cout<<" AUTHENTICATION "<<endl<<endl;
             if (!checker)
             {
                 cout << "Incorrect Username or Password" << endl;
+                cout << "\nPress Enter to continue...";
+                cin.get();
+                clearScreen();
             }
             getUser(username);
             getPass(password);
 
             if (name == "0")
             {
+                cout << "\nPress Enter to continue...";
+                cin.get();
+                clearScreen();
                 return;
             }
 
@@ -1006,9 +1154,20 @@ struct Signin
         } while (!checker);
 
         pinVerification(this->pin, n);
+        if (n == -1)
+        {
+            setAuditLog(ID, "CANCELLED WITHDRAW", this->balance, this->balance);
+            file.close();
+            temp.close();
+            remove("temp.csv");
+            return;
+        }
         if (n == 0)
         {
             setAuditLog(ID, "FAILED PIN CHANGE - PIN VERIFICATION FAILED", 0.00, 0.00);
+            file.close();
+            temp.close();
+            remove("temp.csv");
             return;
         }
 
@@ -1016,18 +1175,19 @@ struct Signin
         {
             checker = false;
 
-            cout << "Must contain a 6 combination number" << endl;
-            cout << "Enter your New 6 digit PIN" << endl;
+            cout << "\033[3m" << "Must contain a 6 combination number" << "\033[0m" << endl;
+            cout << "\nEnter your New 6 digit PIN : " << endl;
             getline(cin, newPin);
 
             if (!isValid.pin(newPin))
             {
+                clearScreen();
                 cout << "Invalid pin please try again" << endl;
                 checker = !isValid.pin(newPin);
             }
             else
             {
-                cout << "Re-enter your New 6 digit PIN" << endl;
+                cout << "\nRe-enter your New 6 digit PIN : " << endl;
                 getline(cin, reEnter);
                 if (newPin == reEnter)
                 {
@@ -1035,6 +1195,7 @@ struct Signin
                 }
                 else
                 {
+                    clearScreen();
                     cout << "Error : PINs do not match" << endl;
                     repeater = true;
                 }
@@ -1177,9 +1338,10 @@ struct Admin
             cout << "Invalid admin credentials!" << endl;
             cout << "\nPress Enter to continue...";
             cin.get();
+            clearScreen();
             return;
         }
-
+        clearScreen();
         int choice;
         do
         {
@@ -1191,31 +1353,38 @@ struct Admin
             cout << "\nEnter choice (0-3): ";
             cin >> choice;
             cin.ignore();
-
+            clearScreen();
             switch (choice)
             {
             case 1:
                 viewAllCustomers();
                 cout << "\nPress Enter to continue...";
                 cin.get();
+                clearScreen();
                 break;
             case 2:
                 freezeUnfreezeAccount();
                 cout << "\nPress Enter to continue...";
                 cin.get();
+                clearScreen();
                 break;
             case 3:
                 viewAuditLog();
                 cout << "\nPress Enter to continue...";
                 cin.get();
+                clearScreen();
                 break;
             case 0:
                 cout << "Logging out..." << endl;
+                cout << "\nPress Enter to continue...";
+                cin.get();
+                clearScreen();
                 break;
             default:
                 cout << "Invalid choice. Please try again." << endl;
                 cout << "\nPress Enter to continue...";
                 cin.get();
+                clearScreen();
                 break;
             }
         } while (choice != 0);
@@ -1299,17 +1468,22 @@ struct Admin
         getline(cin, accNumber);
 
         if (accNumber == "0")
+        {
             return;
+        }
 
         cout << "1. Freeze Account" << endl;
         cout << "2. Unfreeze Account" << endl;
-        cout << "Enter choice (1-2): ";
+        cout << "\nEnter choice (1-2): ";
         cin >> action;
         cin.ignore();
 
         if (action != 1 && action != 2)
         {
             cout << "Invalid choice!" << endl;
+            cout << "\nPress Enter to continue...";
+            cin.get();
+            clearScreen();
             return;
         }
 
@@ -1370,7 +1544,7 @@ struct Admin
                      << balance << ","
                      << status << endl;
 
-                cout << "Account " << accNumber << " has been " << (action == 1 ? "frozen" : "unfrozen") << "." << endl;
+                cout << "\nAccount " << accNumber << " has been " << (action == 1 ? "frozen" : "unfrozen") << "." << endl;
                 setAuditLog(accNum, (action == 1 ? "ACCOUNT FROZEN" : "ACCOUNT UNFROZEN"), 0.00, 0.00);
             }
             else
@@ -1465,18 +1639,20 @@ int main()
         cout << "1. Create account " << endl;
         cout << "2. Check account " << endl;
         cout << "3. Login as Admin " << endl;
-        cout << "0. exit " << endl;
+        cout << "0. exit " << endl
+             << endl;
         cout << "Enter choice : ";
         cin >> n;
         cin.ignore();
+        clearScreen();
         switch (n)
         {
         case 1:
         {
-            system("cls");
             signup.getInfo();
             cout << "\nPress Enter to continue...";
             cin.get();
+            clearScreen();
             break;
         }
         case 2:
@@ -1489,11 +1665,20 @@ int main()
             admin.adminMenu();
             break;
         }
+        case 0:
+        {
+            cout << "Logging out..." << endl;
+            cout << "\nPress Enter to continue...";
+            cin.get();
+            clearScreen();
+            break;
+        }
         default:
         {
             cout << "Invalid choice. Please try again." << endl;
             cout << "\nPress Enter to continue...";
             cin.get();
+            clearScreen();
             break;
         }
         }
