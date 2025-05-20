@@ -7,11 +7,20 @@
 #include <iomanip>
 #include <sstream>
 #include <ctime>
+#include <cstdlib>
 
 using namespace std;
 
 random_device rd;
 mt19937 gen(rd());
+
+void clearScreen() {
+    #ifdef _WIN32
+        system("cls");
+    #else
+        system("clear");
+    #endif
+}
 
 void getUser(string &user)
 {
@@ -25,7 +34,7 @@ void getPass(string &pass)
 }
 void displaySign()
 {
-    cout << "Welcome to DAGGZ!" << endl
+    cout << "\nWelcome to DAGGZ!" << endl
          << endl;
 }
 string generateLogID()
@@ -169,6 +178,7 @@ void pinVerification(string &pin, int &n)
         getline(cin, inputPin);
         if (inputPin == "0")
         {
+            clearScreen();
             return;
         }
         if (inputPin != pin)
@@ -504,7 +514,6 @@ struct Signin
     void signin()
     {
         bool checker = true;
-
         string name = {""}, pass = {""};
 
         displaySign();
@@ -561,7 +570,7 @@ struct Signin
                 number = getFromFile(c, 2);
                 username = getFromFile(c, 3);
                 fullname = getFromFile(c, 4);
-                    password = getFromFile(c, 5);
+                password = getFromFile(c, 5);
                 pin = getFromFile(c, 6);
                 balance = stod(getFromFile(c, 7));
                 setAuditLog(accNumber, "LOGIN", 0.00, 0.00);
@@ -575,6 +584,7 @@ struct Signin
     {
         do
         {
+            cout << "Welcome, " << username << "!" << endl << endl;
             cout << "1. Check balance " << endl;
             cout << "2. Withdraw Cash " << endl;
             cout << "3. Deposit Cash " << endl;
@@ -589,21 +599,33 @@ struct Signin
             {
             case 1:
                 checkBalance();
+                cout << "\nPress Enter to continue...";
+                cin.get();
                 break;
             case 2:
                 withdraw(accNumber);
+                cout << "\nPress Enter to continue...";
+                cin.get();
                 break;
             case 3:
                 deposit(accNumber);
+                cout << "\nPress Enter to continue...";
+                cin.get();
                 break;
             case 4:
                 viewTransaction();
+                cout << "\nPress Enter to continue...";
+                cin.get();
                 break;
             case 5:
                 changePin(accNumber);
+                cout << "\nPress Enter to continue...";
+                cin.get();
                 break;
             default:
                 cout << "Invalid choice. Please try again." << endl;
+                cout << "\nPress Enter to continue...";
+                cin.get();
                 break;
             }
 
@@ -1153,6 +1175,8 @@ struct Admin
         if (!authenticateAdmin())
         {
             cout << "Invalid admin credentials!" << endl;
+            cout << "\nPress Enter to continue...";
+            cin.get();
             return;
         }
 
@@ -1162,10 +1186,9 @@ struct Admin
             cout << "\n          ADMIN PANEL             " << endl;
             cout << "1. View All Customers             " << endl;
             cout << "2. Freeze/Unfreeze Account       " << endl;
-            cout << "3. Reverse Transaction           " << endl;
-            cout << "4. Audit Logs                    " << endl;
+            cout << "3. Audit Logs                    " << endl;
             cout << "0. Logout                        " << endl;
-            cout << "\nEnter choice (0-4): ";
+            cout << "\nEnter choice (0-3): ";
             cin >> choice;
             cin.ignore();
 
@@ -1173,21 +1196,26 @@ struct Admin
             {
             case 1:
                 viewAllCustomers();
+                cout << "\nPress Enter to continue...";
+                cin.get();
                 break;
             case 2:
                 freezeUnfreezeAccount();
+                cout << "\nPress Enter to continue...";
+                cin.get();
                 break;
             case 3:
-                reverseTransaction();
-                break;
-            case 4:
                 viewAuditLog();
+                cout << "\nPress Enter to continue...";
+                cin.get();
                 break;
             case 0:
                 cout << "Logging out..." << endl;
                 break;
             default:
                 cout << "Invalid choice. Please try again." << endl;
+                cout << "\nPress Enter to continue...";
+                cin.get();
                 break;
             }
         } while (choice != 0);
@@ -1366,73 +1394,6 @@ struct Admin
         rename("temp.csv", "SYSTEM_USERS.csv");
     }
 
-    void reverseTransaction()
-    {
-        string accNumber, transID;
-        cout << "\nEnter account number (0 to return): ";
-        getline(cin, accNumber);
-        if (accNumber == "0")
-            return;
-
-        cout << "Enter transaction ID to reverse: ";
-        getline(cin, transID);
-
-        ifstream transFile(accNumber + ".csv");
-        ofstream temp("temp.csv");
-        string line, transNum, accNum, type, amount, amountAfter, time;
-        int location;
-        bool found = false;
-        double amountValue = 0;
-
-        while (getline(transFile, line))
-        {
-            if (line.find(transID) == 0)
-            {
-                found = true;
-
-                location = line.find(",");
-                transNum = line.substr(0, location);
-                line = line.substr(location + 1);
-
-                location = line.find(",");
-                accNum = line.substr(0, location);
-                line = line.substr(location + 1);
-
-                location = line.find(",");
-                type = line.substr(0, location);
-                line = line.substr(location + 1);
-
-                location = line.find(",");
-                amount = line.substr(0, location);
-                line = line.substr(location + 1);
-
-                location = line.find(",");
-                amountAfter = line.substr(0, location);
-                line = line.substr(location + 1);
-
-                time = line;
-                amountValue = stod(amount);
-
-                cout << "Transaction " << transID << " has been reversed." << endl;
-                setAuditLog(accNumber, "REVERSE TRANSACTION", amountValue, 0);
-            }
-            else
-            {
-                temp << line << endl;
-            }
-        }
-
-        if (!found)
-        {
-            cout << "Transaction not found!" << endl;
-        }
-
-        transFile.close();
-        temp.close();
-        remove((accNumber + ".csv").c_str());
-        rename("temp.csv", (accNumber + ".csv").c_str());
-    }
-
     void viewAuditLog()
     {
         ifstream file("SYSTEM_AUDIT_LOG.csv");
@@ -1445,10 +1406,10 @@ struct Admin
              << setw(25) << "Time"
              << setw(20) << "User ID"
              << setw(20) << "Username"
-             << setw(20) << "Action"
+             << setw(30) << "Action"
              << setw(15) << "Before"
              << setw(15) << "After" << endl;
-        cout << string(130, '-') << endl;
+        cout << string(140, '-') << endl;
 
         while (getline(file, line))
         {
@@ -1482,11 +1443,11 @@ struct Admin
                  << setw(25) << time
                  << setw(20) << userID
                  << setw(20) << username
-                 << setw(20) << action
+                 << setw(30) << action
                  << setw(15) << beforeBalance
                  << setw(15) << afterBalance << endl;
         }
-        cout << string(130, '-') << endl;
+        cout << string(140, '-') << endl;
         file.close();
     }
 };
@@ -1512,7 +1473,10 @@ int main()
         {
         case 1:
         {
+            system("cls");
             signup.getInfo();
+            cout << "\nPress Enter to continue...";
+            cin.get();
             break;
         }
         case 2:
@@ -1528,6 +1492,8 @@ int main()
         default:
         {
             cout << "Invalid choice. Please try again." << endl;
+            cout << "\nPress Enter to continue...";
+            cin.get();
             break;
         }
         }
