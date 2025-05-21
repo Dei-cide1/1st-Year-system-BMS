@@ -344,13 +344,19 @@ struct Isvalid
     }
     bool fullName(string name)
     {
-        for (int i = 0; i < name.length(); i++)
-        {
-            if (!isalpha(name[i]))
-            {
+        // Check if name is empty
+        if (name.empty()) {
+            return false;
+        }
+
+        // Check each character
+        for (char c : name) {
+            // Allow letters and spaces
+            if (!isalpha(c) && c != ' ') {
                 return false;
             }
         }
+
         return true;
     }
 };
@@ -440,7 +446,7 @@ struct Signup
             {
                 return;
             }
-            checker = isValid.fullName(fullName);
+            checker = !isValid.fullName(fullName);
         } while (checker);
         checker = false;
         do
@@ -685,6 +691,8 @@ struct Signin
             cout << "3. Deposit Cash " << endl;
             cout << "4. Transaction History " << endl;
             cout << "5. Change pin " << endl;
+            cout << "6. View Information " << endl;
+            cout << "7. Change Account Information " << endl;
             cout << "0. Logout" << endl
                  << endl;
             cout << "Enter choice : ";
@@ -718,6 +726,18 @@ struct Signin
                 cin.get();
                 clearScreen();
                 break;
+            case 6:
+                viewInformation();
+                cout << "\nPress Enter to continue...";
+                cin.get();
+                clearScreen();
+                break;
+            case 7:
+                changeAccountInfo();
+                cout << "\nPress Enter to continue...";
+                cin.get();
+                clearScreen();
+                break;
             case 0:
                 cout << "Logging out..." << endl;
                 cout << "\nPress Enter to continue...";
@@ -727,10 +747,26 @@ struct Signin
                 cout << "Invalid choice. Please try again." << endl;
                 cout << "\nPress Enter to continue...";
                 cin.get();
+                clearScreen();
                 break;
             }
 
         } while (n != 0);
+    }
+
+    void viewInformation()
+    {
+        cout << "\n==========================================" << endl;
+        cout << "              ACCOUNT INFORMATION         " << endl;
+        cout << "==========================================" << endl;
+        cout << "Account Number: " << "\033[3m" << accNumber << "\033[0m" << endl;
+        cout << "Full Name: " << "\033[3m" << getFromFile(accNumber, 4) << "\033[0m" << endl;
+        cout << "Username: " << "\033[3m" << username << "\033[0m" << endl;
+        cout << "Phone Number: " << "\033[3m" << getFromFile(accNumber, 2) << "\033[0m" << endl;
+        cout << "Current Balance: " << "\033[3m" << "Php" << fixed << setprecision(2) << stod(getFromFile(accNumber, 7)) << "\033[0m" << endl;
+        cout << "==========================================" << endl;
+
+        setAuditLog(accNumber, "VIEW INFORMATION", 0.00, 0.00);
     }
 
     void checkBalance()
@@ -1124,7 +1160,8 @@ struct Signin
 
         do
         {
-            cout<<" AUTHENTICATION "<<endl<<endl;
+            cout << " AUTHENTICATION " << endl
+                 << endl;
             if (!checker)
             {
                 cout << "Incorrect Username or Password" << endl;
@@ -1315,6 +1352,214 @@ struct Signin
             }
         }
         return transId;
+    }
+
+    void changeAccountInfo()
+    {
+        int choice;
+        string newValue;
+        bool isValid = false;
+        Isvalid validator;
+
+        cout << "\n==========================================" << endl;
+        cout << "          CHANGE ACCOUNT INFORMATION      " << endl;
+        cout << "==========================================" << endl;
+        cout << "1. Change Full Name" << endl;
+        cout << "2. Change Username" << endl;
+        cout << "3. Change Phone Number" << endl;
+        cout << "4. Change Password" << endl;
+        cout << "0. Return to Menu" << endl;
+        cout << "==========================================" << endl;
+        cout << "\nEnter your choice: ";
+        cin >> choice;
+        cin.ignore();
+        clearScreen();
+
+        if (choice == 0)
+        {
+            return;
+        }
+
+        // Verify PIN before making changes
+        pinVerification(this->pin, n);
+        if (n == -1 || n == 0)
+        {
+            setAuditLog(accNumber, "FAILED ACCOUNT INFO CHANGE - PIN VERIFICATION FAILED", 0.00, 0.00);
+            return;
+        }
+
+        ifstream file("SYSTEM_USERS.csv");
+        ofstream temp("temp.csv");
+        string line, accNum, num, name, fullName, pass, pin;
+        double balance;
+        int location;
+        bool found = false;
+
+        while (getline(file, line))
+        {
+            location = line.find(",");
+            accNum = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            num = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            name = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            fullName = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            pass = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            pin = line.substr(0, location);
+            line = line.substr(location + 1);
+
+            location = line.find(",");
+            if (location != string::npos)
+            {
+                balance = stod(line.substr(0, location));
+            }
+            else
+            {
+                balance = stod(line);
+            }
+
+            if (accNum == accNumber && !found)
+            {
+                found = true;
+                switch (choice)
+                {
+                case 1: // Change Full Name
+                    do
+                    {
+                        cout << "\nEnter new Full Name (0 to cancel): ";
+                        getline(cin, newValue);
+                        if (newValue == "0")
+                        {
+                            file.close();
+                            temp.close();
+                            remove("temp.csv");
+                            return;
+                        }
+                        isValid = validator.fullName(newValue);
+                        if (!isValid)
+                        {
+                            cout << "\nError: Invalid full name. Must contain only letters." << endl;
+                        }
+                    } while (!isValid);
+                    fullName = newValue;
+                    setAuditLog(accNumber, "CHANGE FULL NAME", 0.00, 0.00);
+                    break;
+
+                case 2: // Change Username
+                    do
+                    {
+                        cout << "\nEnter new Username (0 to cancel): ";
+                        getline(cin, newValue);
+                        if (newValue == "0")
+                        {
+                            file.close();
+                            temp.close();
+                            remove("temp.csv");
+                            return;
+                        }
+                        if (validator.usernameExists(newValue))
+                        {
+                            cout << "\nError: Username already exists. Please choose a different one." << endl;
+                            isValid = false;
+                        }
+                        else
+                        {
+                            isValid = validator.username(newValue);
+                            if (!isValid)
+                            {
+                                cout << "\nError: Invalid username format." << endl;
+                            }
+                        }
+                    } while (!isValid);
+                    name = newValue;
+                    username = newValue;
+                    setAuditLog(accNumber, "CHANGE USERNAME", 0.00, 0.00);
+                    break;
+
+                case 3: // Change Phone Number
+                    do
+                    {
+                        cout << "\nEnter new Phone Number (0 to cancel): ";
+                        getline(cin, newValue);
+                        if (newValue == "0")
+                        {
+                            file.close();
+                            temp.close();
+                            remove("temp.csv");
+                            return;
+                        }
+                        isValid = validator.number(newValue);
+                        if (!isValid)
+                        {
+                            cout << "\nError: Invalid phone number format." << endl;
+                        }
+                    } while (!isValid);
+                    num = newValue;
+                    setAuditLog(accNumber, "CHANGE PHONE NUMBER", 0.00, 0.00);
+                    break;
+
+                case 4: // Change Password
+                    do
+                    {
+                        cout << "\nEnter new Password (0 to cancel): ";
+                        getline(cin, newValue);
+                        if (newValue == "0")
+                        {
+                            file.close();
+                            temp.close();
+                            remove("temp.csv");
+                            return;
+                        }
+                        isValid = validator.password(newValue);
+                        if (!isValid)
+                        {
+                            cout << "\nError: Invalid password format." << endl;
+                        }
+                    } while (!isValid);
+                    pass = newValue;
+                    setAuditLog(accNumber, "CHANGE PASSWORD", 0.00, 0.00);
+                    break;
+                }
+
+                temp << accNum << ","
+                     << num << ","
+                     << name << ","
+                     << fullName << ","
+                     << pass << ","
+                     << pin << ","
+                     << balance;
+                if (line.find(",") != string::npos)
+                {
+                    temp << "," << line.substr(line.find(",") + 1);
+                }
+                temp << endl;
+            }
+            else
+            {
+                temp << line << endl;
+            }
+        }
+
+        file.close();
+        temp.close();
+
+        remove("SYSTEM_USERS.csv");
+        rename("temp.csv", "SYSTEM_USERS.csv");
+
+        cout << "\nAccount information updated successfully!" << endl;
     }
 };
 
