@@ -11,6 +11,14 @@
 
 using namespace std;
 
+#define RESET       "\033[0m"
+#define RED         "\033[38;2;204;17;29m"
+#define NAVY        "\033[38;2;24;43;58m"
+#define TEAL        "\033[38;2;50;72;81m"
+#define SLATE       "\033[38;2;75;129;140m"
+#define BOLD        "\033[1m"
+#define UNDERLINE   "\033[4m"
+
 random_device rd;
 mt19937 gen(rd());
 
@@ -25,17 +33,22 @@ void clearScreen()
 
 void getUser(string &user)
 {
-    cout << " \nUsername :" << endl;
+    cout << " Username :" << endl;
     getline(cin, user);
 }
 void getPass(string &pass)
 {
-    cout << " \nPassword :" << endl;
+    cout << " Password :" << endl;
     getline(cin, pass);
 }
 void displaySign()
 {
-    cout << "\nWelcome to DAGGZ!" << endl
+    cout << BOLD << NAVY;
+    cout << "\n============================================\n";
+    cout << "        WELCOME TO " << RED << "DAGGZ BANKING SYSTEM" << NAVY << "        \n";
+    cout << "============================================\n";
+    cout << RESET << endl;
+    cout << "Welcome to DAGGZ!" << endl
          << endl;
 }
 string generateLogID()
@@ -175,7 +188,7 @@ void pinVerification(string &pin, int &n)
 
     do
     {
-        cout << "\nEnter your 6-digit PIN(0 to return) : ";
+        cout << "Enter your 6-digit PIN(0 to return) : ";
         getline(cin, inputPin);
         if (inputPin == "0")
         {
@@ -191,18 +204,18 @@ void pinVerification(string &pin, int &n)
             if (attempts > 0)
             {
                 clearScreen();
-                cout << "Invalid PIN. " << attempts << " attempts remaining." << endl;
+                cout << RED << "Invalid PIN. " << attempts << " attempts remaining." << RESET << endl;
             }
             else
             {
-                cout << "Error: Maximum attempts reached. Please contact the administrator. " << endl
+                cout << RED << "Error: Maximum attempts reached. Please contact the administrator." << RESET << endl
                      << endl;
-                cout << " Automatically Logging out..." << endl
+                cout << "Automatically Logging out..." << endl
                      << endl;
                 cout << "\nPress Enter to continue...";
                 cin.get();
                 clearScreen();
-                n = 0; // pag naging 0 to ibigsabihin maglologout kasi 0 ung condition ng logout dun sa user panel
+                n = 0;
                 return;
             }
         }
@@ -684,18 +697,19 @@ struct Signin
     {
         do
         {
-            cout << "\n Welcome, " << "\033[3m" << username << "\033[0m" << "!" << endl
-                 << endl;
-            cout << "1. Check balance " << endl;
-            cout << "2. Withdraw Cash " << endl;
-            cout << "3. Deposit Cash " << endl;
-            cout << "4. Transaction History " << endl;
-            cout << "5. Change pin " << endl;
-            cout << "6. View Information " << endl;
-            cout << "7. Change Account Information " << endl;
-            cout << "0. Logout" << endl
-                 << endl;
-            cout << "Enter choice : ";
+            cout << NAVY << BOLD;
+            cout << "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" << endl;
+            cout << "          USER MENU" << endl;
+            cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" << RESET << endl;
+            cout << TEAL << "[1] " << RESET << "Check Balance" << endl;
+            cout << TEAL << "[2] " << RESET << "Withdraw Cash" << endl;
+            cout << TEAL << "[3] " << RESET << "Deposit Cash" << endl;
+            cout << TEAL << "[4] " << RESET << "Transaction History" << endl;
+            cout << TEAL << "[5] " << RESET << "Change PIN" << endl;
+            cout << TEAL << "[6] " << RESET << "View Information" << endl;
+            cout << TEAL << "[7] " << RESET << "Change Account Information" << endl;
+            cout << TEAL << "[0] " << RESET << "Logout" << endl;
+            cout << BOLD << "\nEnter your choice: " << RESET;
             cin >> n;
             cin.ignore();
             clearScreen();
@@ -756,15 +770,16 @@ struct Signin
 
     void viewInformation()
     {
+        cout << NAVY << BOLD;
         cout << "\n==========================================" << endl;
         cout << "              ACCOUNT INFORMATION         " << endl;
-        cout << "==========================================" << endl;
-        cout << "Account Number: " << "\033[3m" << accNumber << "\033[0m" << endl;
-        cout << "Full Name: " << "\033[3m" << getFromFile(accNumber, 4) << "\033[0m" << endl;
-        cout << "Username: " << "\033[3m" << username << "\033[0m" << endl;
-        cout << "Phone Number: " << "\033[3m" << getFromFile(accNumber, 2) << "\033[0m" << endl;
-        cout << "Current Balance: " << "\033[3m" << "Php" << fixed << setprecision(2) << stod(getFromFile(accNumber, 7)) << "\033[0m" << endl;
-        cout << "==========================================" << endl;
+        cout << "==========================================" << RESET << endl;
+        cout << "Account Number: " << accNumber << endl;
+        cout << "Full Name: " << getFromFile(accNumber, 4) << endl;
+        cout << "Username: " << username << endl;
+        cout << "Phone Number: " << getFromFile(accNumber, 2) << endl;
+        cout << "Current Balance: ₱" << fixed << setprecision(2) << stod(getFromFile(accNumber, 7)) << endl;
+        cout << NAVY << "==========================================" << RESET << endl;
 
         setAuditLog(accNumber, "VIEW INFORMATION", 0.00, 0.00);
     }
@@ -772,31 +787,31 @@ struct Signin
     void checkBalance()
     {
         double balance = stod(getFromFile(accNumber, 7));
-        cout << " CURRENT BALANCE : Php" << fixed << setprecision(2) << balance << endl;
+        cout << NAVY << BOLD;
+        cout << "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" << endl;
+        cout << "          BALANCE INQUIRY" << endl;
+        cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" << RESET << endl;
+        cout << " CURRENT BALANCE : ₱" << fixed << setprecision(2) << balance << endl;
         setAuditLog(accNumber, "CHECK BALANCE", balance, balance);
     }
 
     void generateReceipt(string transactionType, double amount, double balance)
     {
-
-        cout << "              TRANSACTION RECEIPT          " << endl
-             << endl;
-
-        cout << "Date & Time: " << "\033[3m" << getCurrentDateTime() << "\033[0m" << endl;
-        cout << "Account Number: " << "\033[3m" << accNumber << "\033[0m" << endl;
-        cout << "Full Name: " << "\033[3m" << getFromFile(accNumber, 4) << "\033[0m" << endl;
-        cout << "Username: " << "\033[3m" << username << "\033[0m" << endl;
-        cout << "Transaction Type: " << "\033[3m" << transactionType << "\033[0m" << endl;
-        cout << "Amount: ₱" << "\033[3m" << fixed << setprecision(2) << amount << "\033[0m" << endl;
-        cout << "Current Balance: ₱" << "\033[3m" << fixed << setprecision(2) << balance << "\033[0m" << endl;
-        cout << "Transaction ID: " << "\033[3m" << transactionIdGenerate() << "\033[0m" << endl;
-
-        cout << "Thank you for banking with us!" << endl
-             << endl;
-
-        cout << "\nPress Enter to continue...";
-        cin.get();
-        clearScreen();
+        cout << NAVY << BOLD;
+        cout << "\n==========================================" << endl;
+        cout << "              TRANSACTION RECEIPT          " << endl;
+        cout << "==========================================" << RESET << endl;
+        cout << "Date & Time: " << getCurrentDateTime() << endl;
+        cout << "Account Number: " << accNumber << endl;
+        cout << "Full Name: " << getFromFile(accNumber, 4) << endl;
+        cout << "Username: " << username << endl;
+        cout << "Transaction Type: " << transactionType << endl;
+        cout << "Amount: ₱" << fixed << setprecision(2) << amount << endl;
+        cout << "Current Balance: ₱" << fixed << setprecision(2) << balance << endl;
+        cout << "Transaction ID: " << transactionIdGenerate() << endl;
+        cout << NAVY << "==========================================" << endl;
+        cout << "Thank you for banking with us!" << endl;
+        cout << "==========================================\n" << RESET << endl;
     }
 
     void withdraw(string ID)
@@ -815,8 +830,8 @@ struct Signin
         do
         {
             repeater = true;
-            cout << "\033[3m" << "(Note that the bank only withdraw in denomination of 100, 200, 500 and 1000)" << "\033[0m" << endl;
-            cout << "\nChoose amount to Withdraw(0 to return) : ";
+            cout << SLATE << "(Note that the bank only withdraw in denomination of 100, 200, 500 and 1000)" << RESET << endl;
+            cout << "Choose amount to Withdraw(0 to return) : ";
             cin >> inputBalance;
             cin.ignore();
             if (inputBalance == 0)
@@ -828,7 +843,7 @@ struct Signin
             }
             if (inputBalance < 0)
             {
-                cout << "Error: Cannot withdraw negative amount!" << endl;
+                cout << RED << "Error: Cannot withdraw negative amount!" << RESET << endl;
                 repeater = false;
                 cout << "\nPress Enter to continue...";
                 cin.get();
@@ -837,7 +852,7 @@ struct Signin
             }
             if (0 != (static_cast<int>(inputBalance) % 100))
             {
-                cout << "Error: Amount must be in denominations of 100, 200, 500, or 1000" << endl;
+                cout << RED << "Error: Amount must be in denominations of 100, 200, 500, or 1000" << RESET << endl;
                 repeater = false;
                 cout << "\nPress Enter to continue...";
                 cin.get();
@@ -845,7 +860,7 @@ struct Signin
             }
             if (inputBalance > this->balance)
             {
-                cout << "Error: Insufficient balance. Your current balance is php" << fixed << setprecision(2) << this->balance << endl;
+                cout << RED << "Error: Insufficient balance. Your current balance is ₱" << fixed << setprecision(2) << this->balance << RESET << endl;
                 repeater = false;
                 cout << "\nPress Enter to continue...";
                 cin.get();
@@ -962,7 +977,7 @@ struct Signin
         do
         {
             repeater = true;
-            cout << " Enter amount to Deposit(0 to return) : ";
+            cout << "Enter amount to Deposit(0 to return) : ";
             cin >> inputBalance;
             cin.ignore();
             if (inputBalance == 0)
@@ -977,7 +992,7 @@ struct Signin
             }
             if (inputBalance < 0)
             {
-                cout << "Error: Cannot deposit negative amount!" << endl;
+                cout << RED << "Error: Cannot deposit negative amount!" << RESET << endl;
                 repeater = false;
                 cout << "\nPress Enter to continue...";
                 cin.get();
@@ -986,7 +1001,7 @@ struct Signin
             }
             if (inputBalance < 99)
             {
-                cout << "Error : Minimum is 100" << endl;
+                cout << RED << "Error: Minimum deposit is ₱100" << RESET << endl;
                 cout << "\nPress Enter to continue...";
                 cin.get();
                 clearScreen();
@@ -1580,7 +1595,7 @@ struct Admin
     {
         if (!authenticateAdmin())
         {
-            cout << "Invalid admin credentials!" << endl;
+            cout << RED << "Invalid admin credentials!" << RESET << endl;
             cout << "\nPress Enter to continue...";
             cin.get();
             clearScreen();
@@ -1590,12 +1605,15 @@ struct Admin
         int choice;
         do
         {
-            cout << "\n          ADMIN PANEL             " << endl;
-            cout << "1. View All Customers             " << endl;
-            cout << "2. Freeze/Unfreeze Account       " << endl;
-            cout << "3. Audit Logs                    " << endl;
-            cout << "0. Logout                        " << endl;
-            cout << "\nEnter choice (0-3): ";
+            cout << NAVY << BOLD;
+            cout << "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" << endl;
+            cout << "          ADMIN PANEL" << endl;
+            cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" << RESET << endl;
+            cout << TEAL << "[1] " << RESET << "View All Customers" << endl;
+            cout << TEAL << "[2] " << RESET << "Freeze/Unfreeze Account" << endl;
+            cout << TEAL << "[3] " << RESET << "Audit Logs" << endl;
+            cout << TEAL << "[0] " << RESET << "Logout" << endl;
+            cout << BOLD << "\nEnter your choice: " << RESET;
             cin >> choice;
             cin.ignore();
             clearScreen();
@@ -1881,12 +1899,11 @@ int main()
         Admin admin;
 
         displaySign();
-        cout << "1. Create account " << endl;
-        cout << "2. Check account " << endl;
-        cout << "3. Login as Admin " << endl;
-        cout << "0. exit " << endl
-             << endl;
-        cout << "Enter choice : ";
+        cout << TEAL << "[1] " << RESET << "Create Account" << endl;
+        cout << TEAL << "[2] " << RESET << "Login to Account" << endl;
+        cout << TEAL << "[3] " << RESET << "Login as Admin" << endl;
+        cout << "0. exit " << endl;
+        cout << BOLD << "\nEnter your choice: " << RESET;
         cin >> n;
         cin.ignore();
         clearScreen();
