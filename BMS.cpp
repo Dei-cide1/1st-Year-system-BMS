@@ -11,13 +11,13 @@
 
 using namespace std;
 
-#define RESET       "\033[0m"
-#define RED         "\033[38;2;204;17;29m"
-#define NAVY        "\033[38;2;24;43;58m"
-#define TEAL        "\033[38;2;50;72;81m"
-#define SLATE       "\033[38;2;75;129;140m"
-#define BOLD        "\033[1m"
-#define UNDERLINE   "\033[4m"
+#define RESET "\033[0m"
+#define RED "\033[38;2;204;17;29m"
+#define NAVY "\033[38;2;24;43;58m"
+#define TEAL "\033[38;2;50;72;81m"
+#define SLATE "\033[38;2;75;129;140m"
+#define BOLD "\033[1m"
+#define UNDERLINE "\033[4m"
 
 random_device rd;
 mt19937 gen(rd());
@@ -358,14 +358,17 @@ struct Isvalid
     bool fullName(string name)
     {
         // Check if name is empty
-        if (name.empty()) {
+        if (name.empty())
+        {
             return false;
         }
 
         // Check each character
-        for (char c : name) {
+        for (char c : name)
+        {
             // Allow letters and spaces
-            if (!isalpha(c) && c != ' ') {
+            if (!isalpha(c) && c != ' ')
+            {
                 return false;
             }
         }
@@ -690,6 +693,7 @@ struct Signin
                 checker = true;
                 clearScreen();
             }
+            clearScreen();
         } while (!checker);
     }
 
@@ -811,7 +815,8 @@ struct Signin
         cout << "Transaction ID: " << transactionIdGenerate() << endl;
         cout << NAVY << "==========================================" << endl;
         cout << "Thank you for banking with us!" << endl;
-        cout << "==========================================\n" << RESET << endl;
+        cout << "==========================================\n"
+             << RESET << endl;
     }
 
     void withdraw(string ID)
@@ -1406,7 +1411,7 @@ struct Signin
         ifstream file("SYSTEM_USERS.csv");
         ofstream temp("temp.csv");
         string line, accNum, num, name, fullName, pass, pin;
-        double balance;
+        double balance,dummy = 0;
         int location;
         bool found = false;
 
@@ -1470,6 +1475,8 @@ struct Signin
                         }
                     } while (!isValid);
                     fullName = newValue;
+
+                    toHistory(dummy, "CHANGE FULL NAME");
                     setAuditLog(accNumber, "CHANGE FULL NAME", 0.00, 0.00);
                     break;
 
@@ -1501,6 +1508,7 @@ struct Signin
                     } while (!isValid);
                     name = newValue;
                     username = newValue;
+                    toHistory(dummy, "CHANGE USERNAME");
                     setAuditLog(accNumber, "CHANGE USERNAME", 0.00, 0.00);
                     break;
 
@@ -1523,6 +1531,7 @@ struct Signin
                         }
                     } while (!isValid);
                     num = newValue;
+                    toHistory(dummy, "CHANGE PHONE NUMBER");
                     setAuditLog(accNumber, "CHANGE PHONE NUMBER", 0.00, 0.00);
                     break;
 
@@ -1545,6 +1554,7 @@ struct Signin
                         }
                     } while (!isValid);
                     pass = newValue;
+                    toHistory(dummy, "CHANGE PASSWORD");
                     setAuditLog(accNumber, "CHANGE PASSWORD", 0.00, 0.00);
                     break;
                 }
@@ -1564,7 +1574,14 @@ struct Signin
             }
             else
             {
-                temp << line << endl;
+                temp << accNum << ","
+                     << num << ","
+                     << name << ","
+                     << fullName << ","
+                     << pass << ","
+                     << pin << ","
+                     << balance;
+                temp << endl;
             }
         }
 
